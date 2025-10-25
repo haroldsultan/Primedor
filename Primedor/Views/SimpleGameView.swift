@@ -26,11 +26,12 @@ struct SimpleGameView: View {
         self._tokenSupply = State(initialValue: TokenSupply(playerCount: playerCount))
         
         var playerArray: [Player] = []
-        // First player is human
-        playerArray.append(Player(name: "You", isAI: false))
-        // Rest are AI
-        for i in 2...playerCount {
-            playerArray.append(Player(name: "AI\(i)", isAI: true))
+        for i in 1...playerCount {
+            if i == 1 {
+                playerArray.append(Player(name: "P1", isAI: false))
+            } else {
+                playerArray.append(Player(name: "AI\(i)", isAI: true))
+            }
         }
         self._players = State(initialValue: playerArray)
         
@@ -47,7 +48,6 @@ struct SimpleGameView: View {
         self._deckTier2 = State(initialValue: Array(tier2.dropFirst(4)))
         self._deckTier3 = State(initialValue: Array(tier3.dropFirst(4)))
         
-        // Select nobles (playerCount + 1)
         let allNobles = Mathematician.allMathematicians.shuffled()
         self._availableNobles = State(initialValue: Array(allNobles.prefix(playerCount + 1)))
     }
@@ -55,7 +55,15 @@ struct SimpleGameView: View {
     var currentPlayer: Player {
         players[currentPlayerIndex]
     }
-    
+
+    func calculateTotalTokens(for player: Player) -> Int {
+            // The dictionary values are arrays of Token structs ([Token]),
+            // so we need to sum the count of each array.
+            return player.tokens.values.reduce(0) { total, tokensArray in
+                total + tokensArray.count
+            }
+        }
+
     var body: some View {
         ZStack {
             VStack(spacing: 6) {
@@ -82,11 +90,11 @@ struct SimpleGameView: View {
                 }
                 .padding(.horizontal)
                 
-                // Turn tokens (tap to return)
+                // Turn tokens (tap to return/discard)
                 TurnTokensView(
                     collectedTypes: collectedTypesCount,
                     onReturn: { type in
-                        returnTokenThisTurn(type)
+                        returnToken(type) // Changed to use the comprehensive returnToken/discard function
                     }
                 )
                 
@@ -158,10 +166,28 @@ struct SimpleGameView: View {
             
             // Tier 3 row
             HStack(spacing: 4) {
-                Text("T3:\(deckTier3.count)")
-                    .font(.system(size: 10))
-                    .foregroundColor(.purple)
-                    .frame(width: 35)
+                // Deck pile with reserve button
+                Button {
+                    reserveFromDeck(tier: .three)
+                } label: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.purple.opacity(0.2))
+                            .frame(width: 40, height: 56)
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(Color.purple, lineWidth: 2)
+                            .frame(width: 40, height: 56)
+                        VStack(spacing: 2) {
+                            Text("\(deckTier3.count)")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.purple)
+                            Text("Res")
+                                .font(.system(size: 8))
+                                .foregroundColor(.purple)
+                        }
+                    }
+                }
+                .disabled(deckTier3.isEmpty)
                 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
@@ -180,10 +206,28 @@ struct SimpleGameView: View {
             
             // Tier 2 row
             HStack(spacing: 4) {
-                Text("T2:\(deckTier2.count)")
-                    .font(.system(size: 10))
-                    .foregroundColor(.blue)
-                    .frame(width: 35)
+                // Deck pile with reserve button
+                Button {
+                    reserveFromDeck(tier: .two)
+                } label: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.blue.opacity(0.2))
+                            .frame(width: 40, height: 56)
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(Color.blue, lineWidth: 2)
+                            .frame(width: 40, height: 56)
+                        VStack(spacing: 2) {
+                            Text("\(deckTier2.count)")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.blue)
+                            Text("Res")
+                                .font(.system(size: 8))
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+                .disabled(deckTier2.isEmpty)
                 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
@@ -202,10 +246,28 @@ struct SimpleGameView: View {
             
             // Tier 1 row
             HStack(spacing: 4) {
-                Text("T1:\(deckTier1.count)")
-                    .font(.system(size: 10))
-                    .foregroundColor(.green)
-                    .frame(width: 35)
+                // Deck pile with reserve button
+                Button {
+                    reserveFromDeck(tier: .one)
+                } label: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.green.opacity(0.2))
+                            .frame(width: 40, height: 56)
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(Color.green, lineWidth: 2)
+                            .frame(width: 40, height: 56)
+                        VStack(spacing: 2) {
+                            Text("\(deckTier1.count)")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.green)
+                            Text("Res")
+                                .font(.system(size: 8))
+                                .foregroundColor(.green)
+                        }
+                    }
+                }
+                .disabled(deckTier1.isEmpty)
                 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
@@ -225,6 +287,57 @@ struct SimpleGameView: View {
         .padding(.vertical, 6)
         .background(Color.gray.opacity(0.05))
     }
+
+    // Add this new function after reserveCard function
+    func reserveFromDeck(tier: CardTier) {
+        if turnAction != .none {
+            errorMessage = "Already took action this turn"
+            return
+        }
+        
+        if currentPlayer.reservedCards.count >= 3 {
+            errorMessage = "Can only reserve 3 cards"
+            return
+        }
+        
+        // Get card from appropriate deck
+        var card: Card?
+        if tier == .three && !deckTier3.isEmpty {
+            card = deckTier3.removeFirst()
+        } else if tier == .two && !deckTier2.isEmpty {
+            card = deckTier2.removeFirst()
+        } else if tier == .one && !deckTier1.isEmpty {
+            card = deckTier1.removeFirst()
+        }
+        
+        guard let cardToReserve = card else {
+            errorMessage = "No cards left in that deck"
+            return
+        }
+        
+        // Reserve the card
+        currentPlayer.reserveCard(cardToReserve)
+        
+        // Take a gold token if available
+        if let goldToken = tokenSupply.take(.perfect, count: 1) {
+            currentPlayer.addTokens(goldToken)
+
+            if calculateTotalTokens(for: currentPlayer) > 10 {
+                errorMessage = "You took a gold token and are now over 10. You must discard tokens."
+                updateTrigger += 1
+                return  // Don't auto-end if they need to discard
+            }
+        }
+        
+        turnAction = .reservedCard
+        errorMessage = ""
+        updateTrigger += 1
+        
+        // Auto-end turn after reserving
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            endTurn()
+        }
+    }
     
     var tokenSupplySection: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -241,9 +354,11 @@ struct SimpleGameView: View {
                             Circle()
                                 .fill(colorFor(type))
                                 .frame(width: 28, height: 28)
-                            Text("\(tokenSupply.count(of: type))")
-                                .font(.caption2)
-                                .foregroundColor(.primary)
+                                .overlay(
+                                    Text("\(tokenSupply.count(of: type))")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.white)
+                                )
                         }
                     }
                 }
@@ -322,32 +437,98 @@ struct SimpleGameView: View {
             turnAction = .collectingTokens
             errorMessage = ""
             updateTrigger += 1
+            
+            // FIX for Error 1: Use helper function
+            if calculateTotalTokens(for: currentPlayer) > 10 {
+                errorMessage = "You have over 10 tokens. Tap one of your tokens to discard it."
+            }
         }
     }
-    
-    func returnTokenThisTurn(_ type: TokenType) {
-        guard let count = collectedTypesCount[type], count > 0 else { return }
-        
-        // Return token to supply
-        let returned = currentPlayer.removeTokens(type, count: 1)
-        tokenSupply.returnTokens(returned)
-        
-        // Update tracking
-        tokensCollectedThisTurn -= 1
-        collectedTypesCount[type]! -= 1
-        if collectedTypesCount[type]! == 0 {
-            collectedTypesCount.removeValue(forKey: type)
+
+    // Combined function for returning collected tokens and discarding for 10-token limit
+    func returnToken(_ type: TokenType) {
+        let isCollectedThisTurn = (collectedTypesCount[type] ?? 0) > 0
+
+        if turnAction == .collectingTokens && isCollectedThisTurn {
+            // Case 1: Undo a token collection (returns to supply, reduces collected count)
+            let returned = currentPlayer.removeTokens(type, count: 1)
+            tokenSupply.returnTokens(returned)
+            
+            tokensCollectedThisTurn -= 1
+            collectedTypesCount[type]! -= 1
+            if collectedTypesCount[type]! == 0 {
+                collectedTypesCount.removeValue(forKey: type)
+            }
+            
+            if tokensCollectedThisTurn == 0 {
+                turnAction = .none
+            }
+            errorMessage = ""
+        } else if calculateTotalTokens(for: currentPlayer) > 10 {
+            // Case 2: Discarding a token due to 10-token limit (can be any token)
+            if currentPlayer.tokenCount(of: type) > 0 {
+                let returned = currentPlayer.removeTokens(type, count: 1)
+                tokenSupply.returnTokens(returned)
+                
+                errorMessage = calculateTotalTokens(for: currentPlayer) > 10
+                    ? "Still over 10 tokens. Discard another."
+                    : "" // Clears error message when limit is met
+            } else {
+                errorMessage = "You don't have a token of that type to discard."
+            }
+        } else {
+            // Case 3: Invalid action
+            errorMessage = "Cannot return that token at this time."
         }
-        
-        // If no tokens left, reset turn action
-        if tokensCollectedThisTurn == 0 {
-            turnAction = .none
-        }
-        
-        errorMessage = ""
+
         updateTrigger += 1
     }
     
+    // Core payment logic with wildcard (perfect) tokens
+    func payForCard(_ card: Card) {
+        var costToPay = card.cost
+        var goldTokensToSpend = 0
+        var tokensToReturn: [TokenType: Int] = [:]
+
+        // 1. Calculate net cost after applying bonuses
+        for (type, cost) in costToPay {
+            let bonus = currentPlayer.bonusCount(of: type)
+            costToPay[type] = max(0, cost - bonus)
+        }
+
+        // 2. Use specific tokens first, note the shortfall
+        for (type, required) in costToPay where required > 0 {
+            let playerHas = currentPlayer.tokenCount(of: type)
+            let spendSpecific = min(required, playerHas)
+            let shortfall = required - spendSpecific
+
+            if spendSpecific > 0 {
+                tokensToReturn[type, default: 0] += spendSpecific
+            }
+
+            // 3. Use gold tokens to cover the remaining shortfall
+            if shortfall > 0 {
+                let goldAvailable = currentPlayer.tokenCount(of: .perfect) - goldTokensToSpend
+                let useGold = min(shortfall, goldAvailable)
+                
+                goldTokensToSpend += useGold
+            }
+        }
+        
+        // 4. Execute the token removal/return
+        if goldTokensToSpend > 0 {
+            let spentGold = currentPlayer.removeTokens(.perfect, count: goldTokensToSpend)
+            tokenSupply.returnTokens(spentGold)
+        }
+
+        for (type, count) in tokensToReturn {
+            if count > 0 {
+                let spent = currentPlayer.removeTokens(type, count: count)
+                tokenSupply.returnTokens(spent)
+            }
+        }
+    }
+
     func buyCard(_ card: Card) {
         let check = GameRules.canBuyCard(turnAction: turnAction)
         if !check.canBuy {
@@ -360,15 +541,7 @@ struct SimpleGameView: View {
             return
         }
         
-        // Pay the cost
-        for (tokenType, requiredCount) in card.cost {
-            let bonusCount = currentPlayer.bonusCount(of: tokenType)
-            let tokensToSpend = max(0, requiredCount - bonusCount)
-            if tokensToSpend > 0 {
-                let spent = currentPlayer.removeTokens(tokenType, count: tokensToSpend)
-                tokenSupply.returnTokens(spent)
-            }
-        }
+        payForCard(card)
         
         currentPlayer.purchaseCard(card)
         removeAndReplaceCard(card)
@@ -379,6 +552,11 @@ struct SimpleGameView: View {
         turnAction = .boughtCard
         errorMessage = ""
         updateTrigger += 1
+        
+        // Auto-end turn after buying
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            endTurn()
+        }
     }
     
     func buyReservedCard(_ card: Card) {
@@ -393,15 +571,7 @@ struct SimpleGameView: View {
             return
         }
         
-        // Pay the cost
-        for (tokenType, requiredCount) in card.cost {
-            let bonusCount = currentPlayer.bonusCount(of: tokenType)
-            let tokensToSpend = max(0, requiredCount - bonusCount)
-            if tokensToSpend > 0 {
-                let spent = currentPlayer.removeTokens(tokenType, count: tokensToSpend)
-                tokenSupply.returnTokens(spent)
-            }
-        }
+        payForCard(card)
         
         // Purchase and remove from reserved
         currentPlayer.purchaseCard(card)
@@ -413,6 +583,11 @@ struct SimpleGameView: View {
         turnAction = .boughtCard
         errorMessage = ""
         updateTrigger += 1
+        
+        // Auto-end turn after buying
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            endTurn()
+        }
     }
     
     func reserveCard(_ card: Card) {
@@ -432,6 +607,12 @@ struct SimpleGameView: View {
         // Take a gold token if available
         if let goldToken = tokenSupply.take(.perfect, count: 1) {
             currentPlayer.addTokens(goldToken)
+
+            if calculateTotalTokens(for: currentPlayer) > 10 {
+                errorMessage = "You took a gold token and are now over 10. You must discard tokens."
+                updateTrigger += 1
+                return  // Don't auto-end if they need to discard
+            }
         }
         
         removeAndReplaceCard(card)
@@ -439,6 +620,11 @@ struct SimpleGameView: View {
         turnAction = .reservedCard
         errorMessage = ""
         updateTrigger += 1
+        
+        // Auto-end turn after reserving
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            endTurn()
+        }
     }
     
     func removeAndReplaceCard(_ card: Card) {
@@ -462,6 +648,13 @@ struct SimpleGameView: View {
     
     func endTurn() {
         let check = GameRules.canEndTurn(player: currentPlayer)
+        
+        // FIX for Error 1: Use helper function
+        if calculateTotalTokens(for: currentPlayer) > 10 {
+             errorMessage = "You must discard tokens down to 10 before ending your turn."
+             return
+        }
+        
         if !check.canEnd {
             errorMessage = check.reason
             return
@@ -511,6 +704,12 @@ struct SimpleGameView: View {
             switch aiAction {
             case .collectToken(let type):
                 self.collectToken(type)
+                
+                // FIX for Error 1: Use helper function
+                if self.calculateTotalTokens(for: self.currentPlayer) > 10 {
+                    self.performAIDiscard()
+                }
+                
                 // After collecting a token, check if AI should continue
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     self.executeAITurn()
@@ -518,14 +717,20 @@ struct SimpleGameView: View {
                 
             case .buyCard(let card):
                 self.buyCard(card)
-                // After buying, check if AI should continue
+                // After buying, end turn
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    self.executeAITurn()
+                    self.endTurn()
                 }
                 
             case .reserveCard(let card):
                 self.reserveCard(card)
-                // After reserving, end turn (can only do one action)
+
+                // FIX for Error 1: Use helper function
+                if self.calculateTotalTokens(for: self.currentPlayer) > 10 {
+                    self.performAIDiscard()
+                }
+                
+                // After reserving, end turn
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     self.endTurn()
                 }
@@ -537,6 +742,30 @@ struct SimpleGameView: View {
             self.isAIThinking = false
         }
     }
+    
+    func performAIDiscard() {
+            // Use the corrected helper function to check the total count
+            while calculateTotalTokens(for: currentPlayer) > 10 {
+                
+                // FIX: Change filter condition to check the count of the [Token] array
+                // Filter now checks if the array of tokens has a count greater than 0.
+                let removableTokens = currentPlayer.tokens.filter { $0.value.count > 0 }
+                
+                guard let typeToDiscard = removableTokens
+                    // Simple AI strategy: discard the most numerous token first.
+                    // Sort by the count of the tokens array ($0.value.count)
+                    .sorted(by: { $0.value.count > $1.value.count })
+                    .first?
+                    .key else {
+                        break
+                }
+                
+                // This logic is already correct, assuming removeTokens returns [Token]
+                let returned = currentPlayer.removeTokens(typeToDiscard, count: 1)
+                tokenSupply.returnTokens(returned)
+                updateTrigger += 1
+            }
+        }
     
     func colorFor(_ type: TokenType) -> Color {
         switch type {

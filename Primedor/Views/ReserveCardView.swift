@@ -7,22 +7,39 @@ struct ReservedCardView: View {
     
     var body: some View {
         HStack(spacing: 6) {
+            // Points
+            Text("\(card.points)")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(.blue)
+                .frame(width: 12)
+            
+            // Bonus
+            Circle()
+                .fill(colorFor(card.bonus))
+                .frame(width: 10, height: 10)
+                .overlay(
+                    Text("★")
+                        .font(.system(size: 5))
+                        .foregroundColor(.white)
+                )
+            
             // Card name
             Text(card.name)
-                .font(.system(size: 10))
+                .font(.system(size: 9))
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
             // Cost
             HStack(spacing: 2) {
                 ForEach(card.cost.sorted(by: { $0.key.rawValue < $1.key.rawValue }), id: \.key) { type, count in
-                    HStack(spacing: 1) {
-                        Text("\(count)")
-                            .font(.system(size: 9))
-                        Circle()
-                            .fill(colorFor(type))
-                            .frame(width: 8, height: 8)
-                    }
+                    Circle()
+                        .fill(colorFor(type))
+                        .frame(width: 10, height: 10)
+                        .overlay(
+                            Text("\(count)")
+                                .font(.system(size: 7, weight: .bold))
+                                .foregroundColor(.white)
+                        )
                 }
             }
             
@@ -30,7 +47,7 @@ struct ReservedCardView: View {
             Button("Buy") {
                 onBuy()
             }
-            .font(.system(size: 9))
+            .font(.system(size: 8))
             .padding(.vertical, 2)
             .padding(.horizontal, 8)
             .background(canAfford ? Color.blue : Color.gray)
