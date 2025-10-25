@@ -1,0 +1,373 @@
+# Primedor - Swift/SwiftUI Project Plan
+
+**Project Start Date:** October 24, 2025
+**Target Completion:** January 2026 (8-9 weeks)
+**Platform:** iOS (iPhone)
+**Language:** Swift + SwiftUI
+**Status:** 🔴 Not Started
+
+---
+
+## Project Overview
+
+Building a Splendor-inspired mathematical card game for iPhone. Development follows an incremental approach with frequent testing and small file sizes (target <200 lines per file).
+
+**Core Principle:** Build in testable pieces, run and debug frequently, prioritize working solutions over speed.
+
+---
+
+## File Architecture (44 Total Files)
+
+### Models (7 files)
+- [x] `Token.swift` - ~40 lines - Token types & colors ✅
+- [x] `TokenSupply.swift` - ~80 lines - Token pile management ✅
+- [x] `Card.swift` - ~60 lines - Card data model ✅
+- [ ] `CardDeck.swift` - ~100 lines - Deck management
+- [x] `Mathematician.swift` - ~50 lines - Noble/Mathematician model ✅
+- [x] `Player.swift` - ~120 lines - Player state ✅
+- [x] `GameState.swift` - ~150 lines - Master game state ✅
+
+### GameLogic (5 files)
+- [ ] `TurnAction.swift` - ~40 lines - Enum of possible actions
+- [ ] `TurnValidator.swift` - ~120 lines - Validate legal moves
+- [ ] `TurnExecutor.swift` - ~150 lines - Execute valid moves
+- [ ] `MathematicianChecker.swift` - ~80 lines - Check mathematician requirements
+- [ ] `WinConditionChecker.swift` - ~60 lines - Check for game end
+
+### Data (3 files)
+- [ ] `CardDatabase.swift` - ~180 lines - All 90 card definitions
+- [ ] `MathematicianDatabase.swift` - ~80 lines - All mathematician definitions
+- [ ] `TokenConfiguration.swift` - ~40 lines - Token counts by player count
+
+### ViewModels (2 files)
+- [ ] `GameViewModel.swift` - ~180 lines - Main game state bridge
+- [ ] `PlayerViewModel.swift` - ~100 lines - Individual player view logic
+
+### Views (9 files)
+- [ ] `PrimedorApp.swift` - ~20 lines - App entry point
+- [ ] `GameSetupView.swift` - ~120 lines - Player count, start game
+- [ ] `GameBoardView.swift` - ~150 lines - Main game board
+- [ ] `TokenSupplyView.swift` - ~120 lines - Token display/interaction
+- [ ] `CardRowView.swift` - ~100 lines - Row of 4 cards per tier
+- [ ] `CardView.swift` - ~80 lines - Individual card display
+- [ ] `PlayerStatusView.swift` - ~120 lines - Player info panel
+- [ ] `MathematicianDisplayView.swift` - ~80 lines - Mathematician cards
+- [ ] `ActionButtonsView.swift` - ~100 lines - Turn action UI
+- [ ] `CardDetailView.swift` - ~100 lines - Zoomed card view
+
+### AI (4 files)
+- [ ] `AIPlayer.swift` - ~60 lines - AI player wrapper
+- [ ] `AIStrategy.swift` - ~40 lines - Strategy protocol
+- [ ] `SimpleAIStrategy.swift` - ~150 lines - Basic AI logic
+- [ ] `SmartAIStrategy.swift` - ~180 lines - Advanced AI
+
+### Utilities (2 files)
+- [ ] `ColorExtensions.swift` - ~60 lines - Token color definitions
+- [ ] `SoundManager.swift` - ~80 lines - Sound effects (optional)
+
+### Tests (5 files)
+- [x] `TokenSupplyTests.swift` - ~100 lines ✅
+- [ ] `TurnValidatorTests.swift` - ~150 lines
+- [ ] `TurnExecutorTests.swift` - ~150 lines
+- [ ] `GameStateTests.swift` - ~120 lines
+- [ ] `AIStrategyTests.swift` - ~100 lines
+
+---
+
+## Development Phases
+
+### Phase 1: Foundation ⏱️ 8-12 hours
+**Goal:** Core models and logic with NO UI. Everything testable via unit tests.
+**Status:** 🟢 COMPLETE
+**Files:** 8 files
+**Completed:** October 24, 2025
+
+#### Tasks
+- [x] Create Xcode project (iOS App, SwiftUI, Swift)
+- [x] Create `Token.swift` (64 lines)
+- [x] Create `Card.swift` (66 lines)
+- [x] Create `Mathematician.swift` (51 lines)
+- [x] Create `TokenConfiguration.swift` (47 lines)
+- [x] Create `TokenSupply.swift` (84 lines)
+- [x] Create `Player.swift` (125 lines)
+- [x] Create `GameState.swift` (159 lines)
+- [x] Create `TokenSupplyTests.swift` (114 lines)
+- [x] ✅ **Milestone:** Run tests - can create game state, add players, manage tokens
+
+**Testing Checkpoint:** ✅ All models created and verified - can create a game programmatically
+
+---
+
+### Phase 2: Turn Logic ⏱️ 10-15 hours
+**Goal:** Add complete game rules without UI. Keep testing everything.
+**Status:** 🔴 Not Started
+**Files:** 8 files
+
+#### Tasks
+- [ ] Create `TurnAction.swift`
+- [ ] Create `TurnValidator.swift`
+- [ ] Create `TurnExecutor.swift`
+- [ ] Create `MathematicianChecker.swift`
+- [ ] Create `WinConditionChecker.swift`
+- [ ] Create `TurnValidatorTests.swift`
+- [ ] Create `TurnExecutorTests.swift`
+- [ ] Create `GameStateTests.swift`
+- [ ] ✅ **Milestone:** Can play complete game programmatically in tests
+
+**Testing Checkpoint:** All game rules work correctly, win conditions detected
+
+---
+
+### Phase 3: Card Data ⏱️ 6-8 hours
+**Goal:** Add all card content. Still no UI needed.
+**Status:** 🔴 Not Started
+**Files:** 3 files
+
+#### Tasks
+- [ ] Create `CardDatabase.swift` (map all 90 Splendor cards to theorems)
+- [ ] Create `MathematicianDatabase.swift` (8 mathematicians)
+- [ ] Create `CardDeck.swift`
+- [ ] Test: Deal cards, shuffle decks, verify counts
+- [ ] ✅ **Milestone:** Can deal and manage all cards programmatically
+
+**Testing Checkpoint:** Cards shuffle correctly, proper distribution by tier
+
+---
+
+### Phase 4: Minimal UI ⏱️ 12-15 hours
+**Goal:** First playable version! Basic but functional.
+**Status:** 🔴 Not Started
+**Files:** 7 files
+
+#### Tasks
+- [ ] Create `PrimedorApp.swift`
+- [ ] Create `GameViewModel.swift`
+- [ ] Create `GameSetupView.swift`
+- [ ] Create `GameBoardView.swift`
+- [ ] Create `TokenSupplyView.swift`
+- [ ] Create `PlayerStatusView.swift`
+- [ ] Create `ColorExtensions.swift`
+- [ ] Test: Run app, start game, collect tokens
+- [ ] ✅ **Milestone:** Can start game, see tokens, collect tokens via tap
+
+**Testing Checkpoint:** App runs on simulator, can interact with token supply
+
+---
+
+### Phase 5: Card Display ⏱️ 10-12 hours
+**Goal:** Add cards to UI, make them look good.
+**Status:** 🔴 Not Started
+**Files:** 4 files
+
+#### Tasks
+- [ ] Create `CardView.swift`
+- [ ] Create `CardRowView.swift`
+- [ ] Create `CardDetailView.swift`
+- [ ] Create `MathematicianDisplayView.swift`
+- [ ] Test: View cards, tap to zoom, see all tiers
+- [ ] ✅ **Milestone:** Can see all cards clearly, zoom to read details
+
+**Testing Checkpoint:** Cards display correctly, costs and bonuses readable
+
+---
+
+### Phase 6: Complete Interactions ⏱️ 8-10 hours
+**Goal:** Finish all turn actions. Full human vs human gameplay.
+**Status:** 🔴 Not Started
+**Files:** 2 files
+
+#### Tasks
+- [ ] Create `ActionButtonsView.swift`
+- [ ] Create `PlayerViewModel.swift`
+- [ ] Integrate reserve card action
+- [ ] Integrate purchase card action
+- [ ] Add mathematician automatic acquisition
+- [ ] Test: Play full game pass-and-play
+- [ ] ✅ **Milestone:** Can play complete game human vs human
+
+**Testing Checkpoint:** All actions work, game completes properly, winner detected
+
+---
+
+### Phase 7: AI Opponent ⏱️ 15-20 hours
+**Goal:** Add computer opponents with good strategy.
+**Status:** 🔴 Not Started
+**Files:** 5 files
+
+#### Tasks
+- [ ] Create `AIStrategy.swift` (protocol)
+- [ ] Create `AIPlayer.swift`
+- [ ] Create `SimpleAIStrategy.swift` (basic logic)
+- [ ] Create `SmartAIStrategy.swift` (advanced logic)
+- [ ] Create `AIStrategyTests.swift`
+- [ ] Integrate AI into `GameViewModel`
+- [ ] Test: Play against AI, verify legal moves
+- [ ] Test: AI completes games, achieves reasonable scores
+- [ ] ✅ **Milestone:** Can play against 1-3 AI opponents
+
+**Testing Checkpoint:** AI makes legal moves, provides competitive gameplay
+
+---
+
+### Phase 8: Polish & UX ⏱️ 10-15 hours
+**Goal:** Make it beautiful, smooth, and professional.
+**Status:** 🔴 Not Started
+**Files:** Improvements to existing files + 1 new file
+
+#### Tasks
+- [ ] Add animations to card interactions
+- [ ] Add animations to token collection
+- [ ] Add transitions between views
+- [ ] Create `SoundManager.swift` (optional)
+- [ ] Add sound effects for actions (optional)
+- [ ] Improve visual design (shadows, gradients, etc.)
+- [ ] Add tutorial/help overlay
+- [ ] Add game statistics tracking
+- [ ] Test: Full playthrough on multiple iPhone sizes
+- [ ] ✅ **Milestone:** Polished, smooth user experience
+
+**Testing Checkpoint:** App feels professional, no jarring UI issues
+
+---
+
+### Phase 9: Testing & Bug Fixes ⏱️ 1-2 weeks
+**Goal:** Comprehensive testing and refinement.
+**Status:** 🔴 Not Started
+
+#### Tasks
+- [ ] Extended playtesting (10+ full games)
+- [ ] Test on iPhone SE (small screen)
+- [ ] Test on iPhone 15 Pro Max (large screen)
+- [ ] Test with different player counts (2, 3, 4 players)
+- [ ] Test all AI difficulty levels
+- [ ] Fix any discovered bugs
+- [ ] Performance optimization if needed
+- [ ] Accessibility testing (VoiceOver, Dynamic Type)
+- [ ] ✅ **Milestone:** Stable, bug-free gameplay on all devices
+
+---
+
+### Phase 10: App Store Preparation ⏱️ 1 week
+**Goal:** Ready for App Store submission.
+**Status:** 🔴 Not Started
+
+#### Tasks
+- [ ] Create app icon (1024x1024)
+- [ ] Design launch screen
+- [ ] Take App Store screenshots (all required sizes)
+- [ ] Write App Store description
+- [ ] Write privacy policy
+- [ ] Write terms of service
+- [ ] Set up TestFlight for beta testing
+- [ ] Conduct beta test with 5-10 users
+- [ ] Incorporate beta feedback
+- [ ] Final QA pass
+- [ ] Submit to App Store
+- [ ] ✅ **Milestone:** App submitted and under review
+
+---
+
+## Progress Tracking
+
+### Overall Progress: 11% Complete (Phase 1 Done)
+
+| Phase | Status | Completion | Hours Spent | Hours Estimated |
+|-------|--------|-----------|-------------|-----------------|
+| Phase 1: Foundation | 🟢 Complete | 100% | ~10 | 8-12 |
+| Phase 2: Turn Logic | 🔴 Not Started | 0% | 0 | 10-15 |
+| Phase 3: Card Data | 🔴 Not Started | 0% | 0 | 6-8 |
+| Phase 4: Minimal UI | 🔴 Not Started | 0% | 0 | 12-15 |
+| Phase 5: Card Display | 🔴 Not Started | 0% | 0 | 10-12 |
+| Phase 6: Complete Interactions | 🔴 Not Started | 0% | 0 | 8-10 |
+| Phase 7: AI Opponent | 🔴 Not Started | 0% | 0 | 15-20 |
+| Phase 8: Polish & UX | 🔴 Not Started | 0% | 0 | 10-15 |
+| Phase 9: Testing | 🔴 Not Started | 0% | 0 | 40-80 |
+| Phase 10: App Store | 🔴 Not Started | 0% | 0 | 40 |
+
+**Total Estimated Time:** 159-227 hours (approximately 8-9 weeks at 20 hours/week)
+
+---
+
+## Current Sprint
+
+**Current Phase:** UI-First Development
+**Current Focus:** Build and test in UI as we go
+**Last Completed:** Basic working app (October 24, 2025)
+**Next Milestone:** Add cards and purchasing
+
+### What Works Now
+- [x] Token supply display
+- [x] Token collection (tap to collect)
+- [x] Player status display
+- [x] Turn switching
+- [x] Token limit warnings
+- [x] Multi-player support (2-4 players)
+
+### This Week's Goals
+- [ ] Add card display
+- [ ] Add card purchasing
+- [ ] Add validation for legal moves
+- [ ] Add mathematician display and checking
+- [ ] Add win condition
+
+---
+
+## Decision Log
+
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| Oct 24, 2025 | Use Swift + SwiftUI | Native iOS, best performance, modern UI framework |
+| Oct 24, 2025 | Target <200 lines per file | Better maintainability, easier debugging |
+| Oct 24, 2025 | Build logic before UI | Ensures testability, cleaner architecture |
+| Oct 24, 2025 | Include AI from start | Core feature, better to plan architecture early |
+| Oct 24, 2025 | Phase 1 complete | All 8 foundation files created, models working |
+| Oct 24, 2025 | Use classes for stateful objects | TokenSupply, Player, GameState need reference semantics |
+| Oct 24, 2025 | Use structs for data models | Token, Card, Mathematician are value types |
+
+---
+
+## Risk Assessment
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| AI too difficult to implement | Medium | High | Start with simple AI, iterate |
+| UI complexity causes delays | Medium | Medium | Build incrementally, test often |
+| Card balance issues | Low | Low | Using proven Splendor mechanics |
+| Performance issues | Low | Medium | Profile early, optimize as needed |
+| App Store rejection | Medium | High | Follow guidelines, test thoroughly |
+
+---
+
+## Notes & Ideas
+
+### Future Enhancements (Post-Launch)
+- Online multiplayer
+- More mathematician cards
+- Daily challenges
+- Statistics and achievements
+- iPad version
+- Android port
+
+### Questions to Resolve
+- [ ] Monetization strategy (free vs paid vs IAP)?
+- [ ] Target iOS version (iOS 16+, iOS 17+)?
+- [ ] Include game tutorial or just rules screen?
+- [ ] Sound effects required or optional?
+
+---
+
+## How to Use This Document
+
+1. **Check off tasks** as you complete them
+2. **Update status** (🔴 Not Started, 🟡 In Progress, 🟢 Complete)
+3. **Track hours** to stay on schedule
+4. **Add notes** about challenges or solutions
+5. **Review weekly** to stay on track
+
+**Update this document every time you complete a file or phase!**
+
+---
+
+**Document Version:** 1.0
+**Last Updated:** October 24, 2025
+**Next Review Date:** October 31, 2025
