@@ -7,55 +7,49 @@ struct CompactCardView: View {
     let onReserve: () -> Void
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Top: Points and Bonus
+        VStack(spacing: 2) {
+            // Top row: Bonus circle with points in top-right
             HStack {
-                Text("\(card.points)")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.blue)
-                
                 Spacer()
                 
                 Circle()
                     .fill(colorFor(card.bonus))
-                    .frame(width: 14, height: 14)
+                    .frame(width: 16, height: 16)
                     .overlay(
-                        Text("★")
-                            .font(.system(size: 7))
+                        Text("\(card.points)")
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.white)
                     )
             }
-            .padding(.bottom, 2)
             
-            // Card name - ONE LINE
+            // Card name
             Text(card.name)
-                .font(.system(size: 7))
+                .font(.system(size: 7, weight: .semibold))
                 .lineLimit(1)
-                .padding(.bottom, 2)
+                .frame(maxWidth: .infinity, alignment: .leading)
             
-            // Cost - number INSIDE circle
-            HStack(spacing: 2) {
+            // Cost tokens
+            HStack(spacing: 1) {
                 ForEach(card.cost.sorted(by: { $0.key.rawValue < $1.key.rawValue }), id: \.key) { type, count in
                     Circle()
                         .fill(colorFor(type))
-                        .frame(width: 14, height: 14)
+                        .frame(width: 12, height: 12)
                         .overlay(
                             Text("\(count)")
-                                .font(.system(size: 8, weight: .bold))
+                                .font(.system(size: 7, weight: .bold))
                                 .foregroundColor(.white)
                         )
                 }
             }
-            .padding(.bottom, 2)
             
-            // Buttons - side by side
+            // Action buttons
             HStack(spacing: 2) {
                 Button("Buy") {
                     onBuy()
                 }
-                .font(.system(size: 7))
+                .font(.system(size: 8))
                 .padding(.vertical, 2)
-                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 6)
                 .background(canAfford ? Color.blue : Color.gray)
                 .foregroundColor(.white)
                 .cornerRadius(3)
@@ -64,30 +58,22 @@ struct CompactCardView: View {
                 Button("Res") {
                     onReserve()
                 }
-                .font(.system(size: 7))
+                .font(.system(size: 8))
                 .padding(.vertical, 2)
-                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 6)
                 .background(Color.orange)
                 .foregroundColor(.white)
                 .cornerRadius(3)
             }
         }
         .padding(3)
-        .frame(width: 75, height: 75)
-        .background(tierColor)
-        .cornerRadius(6)
+        .frame(width: 70, height: 56)
+        .background(canAfford ? Color.green.opacity(0.1) : Color.white)
+        .cornerRadius(4)
         .overlay(
-            RoundedRectangle(cornerRadius: 6)
-                .stroke(canAfford ? Color.green : Color.clear, lineWidth: 2)
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(canAfford ? Color.green : Color.gray.opacity(0.3), lineWidth: 1)
         )
-    }
-    
-    var tierColor: Color {
-        switch card.tier {
-        case .one: return Color.white
-        case .two: return Color.blue.opacity(0.1)
-        case .three: return Color.purple.opacity(0.1)
-        }
     }
     
     func colorFor(_ type: TokenType) -> Color {

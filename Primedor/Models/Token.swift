@@ -7,14 +7,16 @@
 
 import Foundation
 
-/// Represents the different types of tokens (resources) in the game
 enum TokenType: String, CaseIterable, Codable, Hashable {
-    case prime = "Primes"           // Red chips
-    case even = "Evens"              // Blue chips
-    case odd = "Odds"                // Green chips
-    case square = "Squares"          // Black chips
-    case sequence = "Sequences"      // White chips
-    case perfect = "Perfect Numbers" // Gold chips (wild)
+    // Standard Gem Colors (Development Card Bonuses & Gem Costs)
+    case prime = "Primes"       // Corresponds to Red chips (Ruby)
+    case even = "Evens"         // Corresponds to Blue chips (Sapphire)
+    case odd = "Odds"           // Corresponds to Green chips (Emerald)
+    case square = "Squares"     // Corresponds to Black chips (Onyx)
+    case sequence = "Sequences" // Corresponds to White chips (Diamond)
+    
+    // Wild Gem (Cost only, no card bonus)
+    case perfect = "Perfect Numbers" // Corresponds to Gold chips (wild)
     
     /// Visual identifier for UI
     var symbol: String {

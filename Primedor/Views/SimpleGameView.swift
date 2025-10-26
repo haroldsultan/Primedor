@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SimpleGameView: View {
+    @Environment(\.dismiss) var dismiss
     let playerCount: Int
     @State private var tokenSupply: TokenSupply
     @State private var players: [Player]
@@ -20,6 +21,7 @@ struct SimpleGameView: View {
     @State private var showWinner = false
     @State private var winner: Player?
     @State private var isAIThinking = false
+    @State private var showNewGameConfirm = false
     
     init(playerCount: Int) {
         self.playerCount = playerCount
@@ -57,46 +59,34 @@ struct SimpleGameView: View {
     }
 
     func calculateTotalTokens(for player: Player) -> Int {
-            // The dictionary values are arrays of Token structs ([Token]),
-            // so we need to sum the count of each array.
-            return player.tokens.values.reduce(0) { total, tokensArray in
-                total + tokensArray.count
-            }
+        return player.tokens.values.reduce(0) { total, tokensArray in
+            total + tokensArray.count
         }
+    }
 
     var body: some View {
         ZStack {
             VStack(spacing: 6) {
                 // Header
                 HStack {
-                    Text(currentPlayer.name)
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .background(Color.blue)
-                        .cornerRadius(8)
-                    
-                    Text("T:\(tokensCollectedThisTurn)")
-                        .font(.caption)
-                    
-                    Spacer()
-                    
-                    Button("End Turn") {
-                        endTurn()
+                    Button("New Game") {
+                        showNewGameConfirm = true
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
+                    .foregroundColor(.red)
+                    
+                    Spacer()
                 }
                 .padding(.horizontal)
-                
-                // Turn tokens (tap to return/discard)
-                TurnTokensView(
-                    collectedTypes: collectedTypesCount,
-                    onReturn: { type in
-                        returnToken(type) // Changed to use the comprehensive returnToken/discard function
+                .confirmationDialog("Start a new game?", isPresented: $showNewGameConfirm) {
+                    Button("New Game", role: .destructive) {
+                        dismiss()
                     }
-                )
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("This will end the current game and return to setup.")
+                }
                 
                 // Error message
                 if !errorMessage.isEmpty {
@@ -135,11 +125,42 @@ struct SimpleGameView: View {
                         // Card grid - 3 rows
                         cardGridSection
                         
+                        // This turn info box with token display
+                        VStack(alignment: .leading, spacing: 0) {
+                            HStack {
+                                Text(currentPlayer.name)
+                                    .font(.caption)
+                                Spacer()
+                            }
+                            .padding(8)
+                            .padding(.bottom, 4)
+                            
+                            TurnTokensView(
+                                collectedTypes: collectedTypesCount,
+                                onReturn: { tokenType in
+                                    returnTokenToSupply(tokenType)
+                                }
+                            )
+                        }
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                        
                         // Token supply
                         tokenSupplySection
                         
                         // Players
                         playersSection
+                        
+                        // End Turn button at bottom
+                        Button("End Turn") {
+                            endTurn()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
                     }
                 }
             }
@@ -151,10 +172,11 @@ struct SimpleGameView: View {
                     .ignoresSafeArea()
                 
                 WinnerView(winner: winner, allPlayers: players) {
-                    // Reset - go back to setup (dismiss this view)
+                    dismiss()
                 }
             }
         }
+        .navigationBarBackButtonHidden(true)
     }
     
     var cardGridSection: some View {
@@ -288,7 +310,6 @@ struct SimpleGameView: View {
         .background(Color.gray.opacity(0.05))
     }
 
-    // Add this new function after reserveCard function
     func reserveFromDeck(tier: CardTier) {
         if turnAction != .none {
             errorMessage = "Already took action this turn"
@@ -318,24 +339,30 @@ struct SimpleGameView: View {
         // Reserve the card
         currentPlayer.reserveCard(cardToReserve)
         
-        // Take a gold token if available
-        if let goldToken = tokenSupply.take(.perfect, count: 1) {
-            currentPlayer.addTokens(goldToken)
-
-            if calculateTotalTokens(for: currentPlayer) > 10 {
-                errorMessage = "You took a gold token and are now over 10. You must discard tokens."
-                updateTrigger += 1
-                return  // Don't auto-end if they need to discard
+        // Take a gold token if available AND if under token limit
+        if calculateTotalTokens(for: currentPlayer) < 10 {
+            if let goldToken = tokenSupply.take(.perfect, count: 1) {
+                currentPlayer.addTokens(goldToken)
             }
+        }
+        
+        // Check if over limit after reserving
+        if calculateTotalTokens(for: currentPlayer) > 10 {
+            errorMessage = "You are over 10 tokens. You must discard tokens."
+            turnAction = .reservedCard
+            updateTrigger += 1
+            return  // Don't auto-end if they need to discard
         }
         
         turnAction = .reservedCard
         errorMessage = ""
         updateTrigger += 1
         
-        // Auto-end turn after reserving
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            endTurn()
+        // ONLY auto-end for HUMAN players
+        if !currentPlayer.isAI {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.endTurn()
+            }
         }
     }
     
@@ -438,19 +465,17 @@ struct SimpleGameView: View {
             errorMessage = ""
             updateTrigger += 1
             
-            // FIX for Error 1: Use helper function
             if calculateTotalTokens(for: currentPlayer) > 10 {
                 errorMessage = "You have over 10 tokens. Tap one of your tokens to discard it."
             }
         }
     }
 
-    // Combined function for returning collected tokens and discarding for 10-token limit
     func returnToken(_ type: TokenType) {
         let isCollectedThisTurn = (collectedTypesCount[type] ?? 0) > 0
 
         if turnAction == .collectingTokens && isCollectedThisTurn {
-            // Case 1: Undo a token collection (returns to supply, reduces collected count)
+            // Case 1: Undo a token collection
             let returned = currentPlayer.removeTokens(type, count: 1)
             tokenSupply.returnTokens(returned)
             
@@ -465,14 +490,14 @@ struct SimpleGameView: View {
             }
             errorMessage = ""
         } else if calculateTotalTokens(for: currentPlayer) > 10 {
-            // Case 2: Discarding a token due to 10-token limit (can be any token)
+            // Case 2: Discarding due to 10-token limit
             if currentPlayer.tokenCount(of: type) > 0 {
                 let returned = currentPlayer.removeTokens(type, count: 1)
                 tokenSupply.returnTokens(returned)
                 
                 errorMessage = calculateTotalTokens(for: currentPlayer) > 10
                     ? "Still over 10 tokens. Discard another."
-                    : "" // Clears error message when limit is met
+                    : ""
             } else {
                 errorMessage = "You don't have a token of that type to discard."
             }
@@ -484,7 +509,6 @@ struct SimpleGameView: View {
         updateTrigger += 1
     }
     
-    // Core payment logic with wildcard (perfect) tokens
     func payForCard(_ card: Card) {
         var costToPay = card.cost
         var goldTokensToSpend = 0
@@ -553,9 +577,11 @@ struct SimpleGameView: View {
         errorMessage = ""
         updateTrigger += 1
         
-        // Auto-end turn after buying
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            endTurn()
+        // ONLY auto-end for HUMAN players
+        if !currentPlayer.isAI {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.endTurn()
+            }
         }
     }
     
@@ -584,9 +610,11 @@ struct SimpleGameView: View {
         errorMessage = ""
         updateTrigger += 1
         
-        // Auto-end turn after buying
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            endTurn()
+        // ONLY auto-end for HUMAN players
+        if !currentPlayer.isAI {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.endTurn()
+            }
         }
     }
     
@@ -604,15 +632,19 @@ struct SimpleGameView: View {
         // Reserve the card
         currentPlayer.reserveCard(card)
         
-        // Take a gold token if available
-        if let goldToken = tokenSupply.take(.perfect, count: 1) {
-            currentPlayer.addTokens(goldToken)
-
-            if calculateTotalTokens(for: currentPlayer) > 10 {
-                errorMessage = "You took a gold token and are now over 10. You must discard tokens."
-                updateTrigger += 1
-                return  // Don't auto-end if they need to discard
+        // Take a gold token if available AND if under token limit
+        if calculateTotalTokens(for: currentPlayer) < 10 {
+            if let goldToken = tokenSupply.take(.perfect, count: 1) {
+                currentPlayer.addTokens(goldToken)
             }
+        }
+        
+        // Check if over limit after reserving
+        if calculateTotalTokens(for: currentPlayer) > 10 {
+            errorMessage = "You are over 10 tokens. You must discard tokens."
+            turnAction = .reservedCard
+            updateTrigger += 1
+            return  // Don't auto-end if they need to discard
         }
         
         removeAndReplaceCard(card)
@@ -621,9 +653,11 @@ struct SimpleGameView: View {
         errorMessage = ""
         updateTrigger += 1
         
-        // Auto-end turn after reserving
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            endTurn()
+        // ONLY auto-end for HUMAN players
+        if !currentPlayer.isAI {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.endTurn()
+            }
         }
     }
     
@@ -649,7 +683,6 @@ struct SimpleGameView: View {
     func endTurn() {
         let check = GameRules.canEndTurn(player: currentPlayer)
         
-        // FIX for Error 1: Use helper function
         if calculateTotalTokens(for: currentPlayer) > 10 {
              errorMessage = "You must discard tokens down to 10 before ending your turn."
              return
@@ -705,7 +738,6 @@ struct SimpleGameView: View {
             case .collectToken(let type):
                 self.collectToken(type)
                 
-                // FIX for Error 1: Use helper function
                 if self.calculateTotalTokens(for: self.currentPlayer) > 10 {
                     self.performAIDiscard()
                 }
@@ -725,7 +757,6 @@ struct SimpleGameView: View {
             case .reserveCard(let card):
                 self.reserveCard(card)
 
-                // FIX for Error 1: Use helper function
                 if self.calculateTotalTokens(for: self.currentPlayer) > 10 {
                     self.performAIDiscard()
                 }
@@ -744,28 +775,21 @@ struct SimpleGameView: View {
     }
     
     func performAIDiscard() {
-            // Use the corrected helper function to check the total count
-            while calculateTotalTokens(for: currentPlayer) > 10 {
-                
-                // FIX: Change filter condition to check the count of the [Token] array
-                // Filter now checks if the array of tokens has a count greater than 0.
-                let removableTokens = currentPlayer.tokens.filter { $0.value.count > 0 }
-                
-                guard let typeToDiscard = removableTokens
-                    // Simple AI strategy: discard the most numerous token first.
-                    // Sort by the count of the tokens array ($0.value.count)
-                    .sorted(by: { $0.value.count > $1.value.count })
-                    .first?
-                    .key else {
-                        break
-                }
-                
-                // This logic is already correct, assuming removeTokens returns [Token]
-                let returned = currentPlayer.removeTokens(typeToDiscard, count: 1)
-                tokenSupply.returnTokens(returned)
-                updateTrigger += 1
+        while calculateTotalTokens(for: currentPlayer) > 10 {
+            let removableTokens = currentPlayer.tokens.filter { $0.value.count > 0 }
+            
+            guard let typeToDiscard = removableTokens
+                .sorted(by: { $0.value.count > $1.value.count })
+                .first?
+                .key else {
+                    break
             }
+            
+            let returned = currentPlayer.removeTokens(typeToDiscard, count: 1)
+            tokenSupply.returnTokens(returned)
+            updateTrigger += 1
         }
+    }
     
     func colorFor(_ type: TokenType) -> Color {
         switch type {
@@ -776,5 +800,33 @@ struct SimpleGameView: View {
         case .sequence: return .gray
         case .perfect: return .yellow
         }
+    }
+    
+    func returnTokenToSupply(_ tokenType: TokenType) {
+        // Only allow returning tokens that were collected this turn
+        guard collectedTypesCount[tokenType, default: 0] > 0 else {
+            errorMessage = "No tokens of that type to return"
+            return
+        }
+        
+        // Remove one token from player
+        let returned = currentPlayer.removeTokens(tokenType, count: 1)
+        
+        // Return to supply
+        tokenSupply.returnTokens(returned)
+        
+        // Update tracking
+        if var count = collectedTypesCount[tokenType] {
+            count -= 1
+            if count == 0 {
+                collectedTypesCount.removeValue(forKey: tokenType)
+            } else {
+                collectedTypesCount[tokenType] = count
+            }
+        }
+        
+        tokensCollectedThisTurn = max(0, tokensCollectedThisTurn - 1)
+        errorMessage = ""
+        updateTrigger += 1
     }
 }

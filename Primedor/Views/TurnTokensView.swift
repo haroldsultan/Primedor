@@ -6,10 +6,6 @@ struct TurnTokensView: View {
     
     var body: some View {
         HStack(spacing: 4) {
-            Text("This turn:")
-                .font(.system(size: 10))
-                .foregroundColor(.secondary)
-            
             ForEach(Array(collectedTypes.keys.sorted(by: { $0.rawValue < $1.rawValue })), id: \.self) { type in
                 if let count = collectedTypes[type], count > 0 {
                     Button {

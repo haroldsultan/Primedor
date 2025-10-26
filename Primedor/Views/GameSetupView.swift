@@ -3,6 +3,7 @@ import SwiftUI
 struct GameSetupView: View {
     @State private var playerCount: Int = 2
     @State private var showGame: Bool = false
+    @State private var gameID = UUID() // Add this to force new game instances
     
     var body: some View {
         NavigationStack {
@@ -19,6 +20,7 @@ struct GameSetupView: View {
                 .padding()
                 
                 Button("Start Game") {
+                    gameID = UUID() // Generate new ID for new game
                     showGame = true
                 }
                 .buttonStyle(.borderedProminent)
@@ -33,6 +35,7 @@ struct GameSetupView: View {
             .padding()
             .navigationDestination(isPresented: $showGame) {
                 SimpleGameView(playerCount: playerCount)
+                    .id(gameID) // Force new instance with new ID
             }
         }
     }
