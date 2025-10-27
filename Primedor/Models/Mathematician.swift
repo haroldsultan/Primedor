@@ -46,39 +46,87 @@ struct Mathematician: Identifiable, Codable, Hashable {
         return true
     }
     
-    static let allMathematicians: [Mathematician] = [
-            // --- 4-4 Combinations (Two Colors Required) ---
-            
-            // 1. Original: 4 White, 4 Blue -> Sequence, Even
-            Mathematician(name: "Alan Turing", specialty: "Computing", requirements: [.sequence: 4, .even: 4]),
-            
-            // 2. Original: 4 White, 4 Black -> Sequence, Square
-            Mathematician(name: "Carl F. Gauss", specialty: "Number Theory", requirements: [.sequence: 4, .square: 4]),
-            
-            // 3. Original: 4 White, 4 Red -> Sequence, Prime
-            Mathematician(name: "Sophie Germain", specialty: "Number Theory", requirements: [.sequence: 4, .prime: 4]),
-            
-            // 4. Original: 4 Blue, 4 Red -> Even, Prime
-            Mathematician(name: "Pythagoras", specialty: "Theorem", requirements: [.even: 4, .prime: 4]),
-            
-            // 5. Original: 4 Green, 4 Red -> Odd, Prime
-            Mathematician(name: "Srinivasa Ramanujan", specialty: "Partitions", requirements: [.odd: 4, .prime: 4]),
-            
-            // --- 3-3-3 Combinations (Three Colors Required) ---
-            
-            // 6. Original: 3 White, 3 Blue, 3 Green -> Sequence, Even, Odd
-            Mathematician(name: "Rene Descartes", specialty: "Geometry", requirements: [.sequence: 3, .even: 3, .odd: 3]),
-            
-            // 7. Original: 3 White, 3 Green, 3 Black -> Sequence, Odd, Square
-            Mathematician(name: "Hypatia", specialty: "Astronomy", requirements: [.sequence: 3, .odd: 3, .square: 3]),
-            
-            // 8. Original: 3 Blue, 3 Green, 3 Red -> Even, Odd, Prime
-            Mathematician(name: "G. W. Leibniz", specialty: "Calculus", requirements: [.even: 3, .odd: 3, .prime: 3]),
-            
-            // 9. Original: 3 Green, 3 Red, 3 Black -> Odd, Prime, Square
-            Mathematician(name: "Emmy Noether", specialty: "Abstract Algebra", requirements: [.odd: 3, .prime: 3, .square: 3]),
-            
-            // 10. Original: 3 Blue, 3 Red, 3 Black -> Even, Prime, Square
-            Mathematician(name: "Archimedes", specialty: "Mechanics", requirements: [.even: 3, .prime: 3, .square: 3])
-        ]
+    static let allMathematicians: [Mathematician] = twoCombinations() + threeCombinations()
+        
+        // --- 4-4 Combinations (Two Colors Required) ---
+        // Each requires exactly 4 of two different resource types
+        static func twoCombinations() -> [Mathematician] {
+            return [
+                // 1. Sequence + Even (4+4)
+                Mathematician(
+                    name: "Alan Turing",
+                    specialty: "Computing",
+                    requirements: [.sequence: 4, .even: 4]
+                ),
+                
+                // 2. Even + Green (4+4)
+                Mathematician(
+                    name: "Carl F. Gauss",
+                    specialty: "Number Theory",
+                    requirements: [.even: 4, .odd: 4]
+                ),
+                
+                // 3. Green + Prime (4+4)
+                Mathematician(
+                    name: "Sophie Germain",
+                    specialty: "Number Theory",
+                    requirements: [.odd: 4, .prime: 4]
+                ),
+                
+                // 4. Prime + Black (4+4)
+                Mathematician(
+                    name: "Pythagoras",
+                    specialty: "Theorem",
+                    requirements: [.prime: 4, .square: 4]
+                ),
+                
+                // 5. Sequence + Black (4+4)
+                Mathematician(
+                    name: "Srinivasa Ramanujan",
+                    specialty: "Partitions",
+                    requirements: [.sequence: 4, .square: 4]
+                )
+            ]
+        }
+        
+        // --- 3-3-3 Combinations (Three Colors Required) ---
+        // Each requires exactly 3 of three different resource types
+        static func threeCombinations() -> [Mathematician] {
+            return [
+                // 6. Sequence + Even + Green (3+3+3)
+                Mathematician(
+                    name: "Rene Descartes",
+                    specialty: "Geometry",
+                    requirements: [.sequence: 3, .even: 3, .odd: 3]
+                ),
+                
+                // 7. Sequence + Green + Prime (3+3+3)
+                Mathematician(
+                    name: "Hypatia",
+                    specialty: "Astronomy",
+                    requirements: [.sequence: 3, .odd: 3, .prime: 3]
+                ),
+                
+                // 8. Sequence + Even + Black (3+3+3)
+                Mathematician(
+                    name: "G. W. Leibniz",
+                    specialty: "Calculus",
+                    requirements: [.sequence: 3, .even: 3, .square: 3]
+                ),
+                
+                // 9. Green + Prime + Black (3+3+3)
+                Mathematician(
+                    name: "Emmy Noether",
+                    specialty: "Abstract Algebra",
+                    requirements: [.odd: 3, .prime: 3, .square: 3]
+                ),
+                
+                // 10. Even + Green + Black (3+3+3)
+                Mathematician(
+                    name: "Archimedes",
+                    specialty: "Mechanics",
+                    requirements: [.even: 3, .odd: 3, .square: 3]
+                )
+            ]
+        }
 }
