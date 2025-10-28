@@ -100,6 +100,81 @@ struct PlayerHandDetailView: View {
                             }
                         }
                         
+                        Divider()
+                            .padding(.horizontal)
+                        
+                        // MATHEMATICIANS SECTION
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Mathematicians (\(player.mathematicians.count))")
+                                .font(.headline)
+                                .padding(.horizontal)
+                            
+                            if player.mathematicians.isEmpty {
+                                Text("No mathematicians claimed")
+                                    .foregroundColor(.secondary)
+                                    .padding()
+                            } else {
+                                VStack(spacing: 12) {
+                                    ForEach(player.mathematicians, id: \.id) { mathematician in
+                                        MathematicianDetailRow(mathematician: mathematician)
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
+                        }
+                        
+                        Divider()
+                            .padding(.horizontal)
+                        
+                        // POINTS SUMMARY
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Victory Points Breakdown")
+                                .font(.headline)
+                                .padding(.horizontal)
+                            
+                            let cardPoints = player.purchasedCards.reduce(0) { $0 + $1.points }
+                            let nobilePoints = player.mathematicians.count * 3
+                            let totalPoints = player.victoryPoints
+                            
+                            VStack(spacing: 8) {
+                                HStack {
+                                    Text("From Cards:")
+                                        .font(.caption)
+                                    Spacer()
+                                    Text("\(cardPoints) pts")
+                                        .font(.caption)
+                                        .fontWeight(.bold)
+                                }
+                                
+                                HStack {
+                                    Text("From Mathematicians:")
+                                        .font(.caption)
+                                    Spacer()
+                                    Text("\(nobilePoints) pts")
+                                        .font(.caption)
+                                        .fontWeight(.bold)
+                                }
+                                
+                                Divider()
+                                    .padding(.vertical, 4)
+                                
+                                HStack {
+                                    Text("Total:")
+                                        .font(.headline)
+                                        .fontWeight(.bold)
+                                    Spacer()
+                                    Text("\(totalPoints) pts")
+                                        .font(.title3)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.purple)
+                                }
+                            }
+                            .padding(12)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                            .padding(.horizontal)
+                        }
+                        
                         Spacer(minLength: 20)
                     }
                     .padding(.vertical)
@@ -215,6 +290,7 @@ struct CardDetailRow: View {
         }
     }
 }
+
 func bonusIcon(for type: TokenType) -> String {
     switch type {
     case .prime: return "🔴"
@@ -223,5 +299,88 @@ func bonusIcon(for type: TokenType) -> String {
     case .square: return "⚫"
     case .sequence: return "⚪"
     case .perfect: return "👑"
+    }
+}
+
+// MARK: - Mathematician Detail Row
+struct MathematicianDetailRow: View {
+    let mathematician: Mathematician
+    @State private var showModal = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                Text("👨‍🔬")
+                    .font(.system(size: 24))
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(mathematician.name)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                    
+                    Text(CardDescription.description(for: mathematician.name))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+                
+                Spacer()
+                
+                VStack(spacing: 2) {
+                    Text("VP")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                    Text("\(mathematician.points)")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                }
+                .padding(6)
+                .background(Color.yellow.opacity(0.2))
+                .cornerRadius(4)
+            }
+            
+            // Requirements
+            if !mathematician.requirements.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Requirements:")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                    
+                    HStack(spacing: 8) {
+                        ForEach(TokenType.allCases, id: \.self) { type in
+                            if let required = mathematician.requirements[type], required > 0 {
+                                HStack(spacing: 3) {
+                                    Circle()
+                                        .fill(colorFor(type))
+                                        .frame(width: 18, height: 18)
+                                        .overlay(
+                                            Text("\(required)")
+                                                .font(.system(size: 9, weight: .bold))
+                                                .foregroundColor(.white)
+                                        )
+                                    
+                                    Text(type.rawValue.capitalized)
+                                        .font(.caption2)
+                                }
+                                .padding(4)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(4)
+                            }
+                        }
+                        
+                        Spacer()
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(8)
+        .onTapGesture {
+            showModal = true
+        }
+        .sheet(isPresented: $showModal) {
+            NobleDetailView(noble: mathematician)
+        }
     }
 }
