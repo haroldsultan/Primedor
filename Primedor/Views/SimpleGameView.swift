@@ -227,6 +227,7 @@ struct SimpleGameView: View {
                     .ignoresSafeArea()
                 
                 WinnerView(winner: winner, allPlayers: players) {
+                    // Return to setup - dismiss entire game
                     dismiss()
                 }
             }
@@ -242,12 +243,17 @@ struct SimpleGameView: View {
             NobleDetailView(noble: noble)
         }
         .confirmationDialog("Reserve Without Gold?", isPresented: $showReserveWarning) {
-            Button("Reserve", role: .default) {
+            Button("Reserve", role: .destructive) {
                 if let card = cardToReserve {
                     performReserve(card)
                 }
+                showReserveWarning = false
+                cardToReserve = nil
             }
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel") {
+                showReserveWarning = false
+                cardToReserve = nil
+            }
         } message: {
             Text(reserveWarningMessage)
         }

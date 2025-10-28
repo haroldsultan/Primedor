@@ -4,6 +4,7 @@ struct WinnerView: View {
     let winner: Player
     let allPlayers: [Player]
     let onDismiss: () -> Void
+    @State private var hideWinner = false
     
     var sortedPlayers: [Player] {
         return allPlayers.sorted { (player1: Player, player2: Player) -> Bool in
@@ -59,16 +60,30 @@ struct WinnerView: View {
             .background(Color.gray.opacity(0.1))
             .cornerRadius(8)
             
-            Button("New Game") {
-                onDismiss()
+            VStack(spacing: 12) {
+                Button("New Game") {
+                    onDismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .font(.title3)
+                
+                Button("View Game") {
+                    hideWinner = true
+                }
+                .buttonStyle(.bordered)
+                .font(.title3)
             }
-            .buttonStyle(.borderedProminent)
-            .font(.title2)
         }
         .padding()
         .background(Color.white)
         .cornerRadius(16)
         .shadow(radius: 10)
         .padding(40)
+        .opacity(hideWinner ? 0 : 1)
+        .onTapGesture {
+            if hideWinner {
+                hideWinner = false
+            }
+        }
     }
 }
