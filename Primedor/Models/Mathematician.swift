@@ -33,14 +33,15 @@ struct CardDescription {
         "Convergence Limit": "The stable value that sequences approach as their terms grow indefinitely.",
         
         // RED CARDS (PRIME) - 18 Cards
-        "Fundamental Unit": "The basic building block from which all composite numbers are constructed.",
-        "Twin Primes": "Two consecutive odd numbers separated by exactly one even number.",
+        "Prime Number": "a whole number greater than 1 that cannot be exactly divided by any whole number other than itself and 1.",
+        "Twin Primes": "Two primes that differ by 2 (e.g. 11 and 13).",
         "Smallest Factor": "The prime factor that divides a number with the least multiplicative power.",
+        "Sophie Germain": "Groundbreaking number theorist who made major contributions to Fermat's Last Theorem.",
         "Prime Gap": "The spacing between consecutive primes that grows mysteriously as numbers increase.",
         "Unique Divisor": "A number whose only divisors are one and itself, the definition of prime.",
         "Safe Prime": "A prime p where (p-1)/2 is also prime, protecting against certain attacks.",
         "Goldbach Sum": "Every even number greater than two is the sum of two prime numbers.",
-        
+
         "Cousin Prime": "Two primes separated by exactly four, like 3 and 7 or 13 and 17.",
         "Mersenne Number": "Numbers of the form 2ⁿ - 1 that often yield the largest known primes.",
         "Safe Prime Extended": "Advanced applications of safe primes in secure cryptographic protocols.",
@@ -122,7 +123,7 @@ struct CardDescription {
         // MATHEMATICIANS (3 points each)
         "Alan Turing": "Pioneer of computer science and artificial intelligence.",
         "Carl F. Gauss": "The Prince of Mathematicians, master of number theory and statistics.",
-        "Sophie Germain": "Groundbreaking number theorist who made major contributions to Fermat's Last Theorem.",
+        "Maryam Mirzakhani": "She mapped the hidden shapes of infinite surfaces.",
         "Pythagoras": "Ancient Greek mathematician whose theorem defines the relationship between triangle sides.",
         "Srinivasa Ramanujan": "Intuitive genius who discovered thousands of remarkable mathematical identities.",
         "Rene Descartes": "Founder of analytic geometry, bridging algebra and geometry.",
@@ -175,7 +176,7 @@ struct Mathematician: Identifiable, Codable, Hashable {
         return [
             Mathematician(name: "Alan Turing", specialty: "Computing", requirements: [.sequence: 4, .even: 4]),
             Mathematician(name: "Carl F. Gauss", specialty: "Number Theory", requirements: [.even: 4, .odd: 4]),
-            Mathematician(name: "Sophie Germain", specialty: "Number Theory", requirements: [.odd: 4, .prime: 4]),
+            Mathematician(name: "Maryam Mirzakhani", specialty: "Number Theory", requirements: [.odd: 4, .prime: 4]),
             Mathematician(name: "Pythagoras", specialty: "Theorem", requirements: [.prime: 4, .square: 4]),
             Mathematician(name: "Srinivasa Ramanujan", specialty: "Partitions", requirements: [.sequence: 4, .square: 4])
         ]
@@ -225,7 +226,7 @@ struct RealCardDatabase {
 
     static func redCards() -> [Card] {
         return [
-            Card(tier: .one, name: "Fundamental Unit", cost: [.sequence: 3], bonus: .prime, points: 0),
+            Card(tier: .one, name: "Prime Number", cost: [.sequence: 3], bonus: .prime, points: 0),
             Card(tier: .one, name: "Twin Primes", cost: [.square: 3, .sequence: 1, .prime: 1], bonus: .prime, points: 0),
             Card(tier: .one, name: "Smallest Factor", cost: [.even: 2, .odd: 1], bonus: .prime, points: 0),
             Card(tier: .one, name: "Sophie Germain", cost: [.square: 2, .sequence: 2, .odd: 1], bonus: .prime, points: 0),

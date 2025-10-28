@@ -25,6 +25,9 @@ struct SimpleGameView: View {
     @State private var selectedCard: Card?
     @State private var selectedPlayer: Player?
     @State private var selectedNoble: Mathematician?
+    @State private var showReserveWarning = false
+    @State private var cardToReserve: Card?
+    @State private var reserveWarningMessage = ""
     
     /// New initializer that accepts pre-configured players
     init(players: [Player]) {
@@ -237,6 +240,16 @@ struct SimpleGameView: View {
         }
         .sheet(item: $selectedNoble) { noble in
             NobleDetailView(noble: noble)
+        }
+        .confirmationDialog("Reserve Without Gold?", isPresented: $showReserveWarning) {
+            Button("Reserve", role: .default) {
+                if let card = cardToReserve {
+                    performReserve(card)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(reserveWarningMessage)
         }
     }
     
@@ -747,6 +760,31 @@ struct SimpleGameView: View {
             return
         }
         
+        // Check if we can get gold token
+        let goldAvailable = tokenSupply.tokens[.perfect]?.count ?? 0 > 0
+        let canGetGold = calculateTotalTokens(for: player) < 10 && goldAvailable
+        
+        // If no gold, show confirmation dialog
+        if !canGetGold {
+            cardToReserve = card
+            if calculateTotalTokens(for: player) >= 10 {
+                reserveWarningMessage = "You're at the token limit (10). You won't receive a gold token. Continue?"
+            } else {
+                reserveWarningMessage = "No gold tokens available. You won't receive a gold token. Continue?"
+            }
+            showReserveWarning = true
+            return
+        }
+        
+        // Has gold available - reserve immediately
+        performReserve(card)
+    }
+    
+    func performReserve(_ card: Card) {
+        guard let player = currentPlayer else {
+            return
+        }
+        
         // Reserve the card
         player.reserveCard(card)
         
@@ -762,7 +800,8 @@ struct SimpleGameView: View {
             errorMessage = "You are over 10 tokens. You must discard tokens."
             turnAction = .reservedCard
             updateTrigger += 1
-            return  // Don't auto-end if they need to discard
+            removeAndReplaceCard(card)
+            return
         }
         
         removeAndReplaceCard(card)
