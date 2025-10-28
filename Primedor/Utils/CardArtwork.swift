@@ -143,11 +143,7 @@ struct CardArtworkDatabase {
             theme: "number_sequence",
             asciiArt: "\n    ╭─────────────────────────────────────────╮\n    │                                         │\n    │      1  →  1  →  2  →  3  →  5        │\n    │                                         │\n    │      ┌─────────────────────────────┐   │\n    │      │                             │   │\n    │      │    Sequence Pattern         │   │\n    │      │                             │   │\n    │      └─────────────────────────────┘   │\n    │                                         │\n    │                                         │\n    ╰─────────────────────────────────────────╯\n    "
         ),
-        "Gauss Circle Problem": CardArtwork(
-            name: "Gauss Circle Problem",
-            theme: "geometric_grid",
-            asciiArt: "\n    ╭─────────────────────────────────────────╮\n    │                                         │\n    │      ┌─────┬─────┬─────┬─────┐        │\n    │      │     │     │     │     │        │\n    │      ├─────┼─────┼─────┼─────┤        │\n    │      │     │     │     │     │        │\n    │      ├─────┼─────┼─────┼─────┤        │\n    │      │     │     │     │     │        │\n    │      └─────┴─────┴─────┴─────┘        │\n    │                                         │\n    ╰─────────────────────────────────────────╯\n    "
-        ),
+
         "Gaussian Sum": CardArtwork(
             name: "Gaussian Sum",
             theme: "number_sequence",
@@ -407,6 +403,61 @@ struct CardArtworkDatabase {
             name: "Zero Pair",
             theme: "even_pattern",
             asciiArt: ""
+        ),
+        "Convergence Limit": CardArtwork(
+            name: "Convergence Limit",
+            theme: "infinite_convergence",
+            asciiArt: "\n    ╭─────────────────────────────────────────╮\n    │                                         │\n    │         →→→→→→→→→→→→→→→→→→→→→        │\n    │        ╱╲                              │\n    │       ╱  ╲        ╭────────╮           │\n    │      ╱    ╲       │  Limit │           │\n    │     ╱      ╲  →   │   L    │           │\n    │    ╱        ╲     │        │           │\n    │   ╱          ╲    ╰────────╯           │\n    │  ╱            ╲                        │\n    │ ╱              ╲                       │\n    ╰─────────────────────────────────────────╯\n    "
+        ),
+        "Dirichlet Theorem": CardArtwork(
+            name: "Dirichlet Theorem",
+            theme: "prime_distribution",
+            asciiArt: "\n    ╭─────────────────────────────────────────╮\n    │                                         │\n    │     2, 5, 7, 11, 13, 17, 19, 23        │\n    │                                         │\n    │     ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆             │\n    │     ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆ ◆             │\n    │                                         │\n    │     ∞ primes in arithmetic sequences   │\n    │                                         │\n    ╰─────────────────────────────────────────╯\n    "
+        ),
+        "Riemann Zeta": CardArtwork(
+            name: "Riemann Zeta",
+            theme: "complex_function",
+            asciiArt: "\n    ╭─────────────────────────────────────────╮\n    │                                         │\n    │                 ζ(s)                   │\n    │                  │                     │\n    │         ───────┼─────────              │\n    │        ╱        │        ╲             │\n    │       ╱         │         ╲            │\n    │      ╱    ●     │    ●     ╲           │\n    │     ╱  zeros on│ critical   ╲          │\n    │    ╱   line Re=│ 1/2         ╲        │\n    │   ╱            │              ╲       │\n    ╰─────────────────────────────────────────╯\n    "
+        ),
+        "Odd Harmonics": CardArtwork(
+            name: "Odd Harmonics",
+            theme: "wave_pattern",
+            asciiArt: "\n    ╭─────────────────────────────────────────╮\n    │                                         │\n    │   1 ╱╲    ╱╲    ╱╲    ╱╲    ╱╲        │\n    │     ╱  ╲  ╱  ╲  ╱  ╲  ╱  ╲  ╱  ╲       │\n    │    ╱    ╲╱    ╲╱    ╲╱    ╲╱    ╲      │\n    │ ─────────────────────────────────────  │\n    │   1/3 ╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲  │\n    │                                         │\n    │   1/5 │││││││││││││││││││││││││││││    │\n    │                                         │\n    ╰─────────────────────────────────────────╯\n    "
+        ),
+        "Twin Conjecture": CardArtwork(
+            name: "Twin Conjecture",
+            theme: "prime_pairs",
+            asciiArt: "\n    ╭─────────────────────────────────────────╮\n    │                                         │\n    │   (3,5) (5,7) (11,13) (17,19) ...     │\n    │    ◆◆    ◆◆    ◆◆◆     ◆◆◆            │\n    │                                         │\n    │   Twin Primes: p and p+2               │\n    │                                         │\n    │   Are there infinitely many?            │\n    │   ✓ Still an open question             │\n    │                                         │\n    ╰─────────────────────────────────────────╯\n    "
+        ),
+        "Boolean Algebra": CardArtwork(
+            name: "Boolean Algebra",
+            theme: "logic_gates",
+            asciiArt: "\n    ╭─────────────────────────────────────────╮\n    │                                         │\n    │        AND     OR      NOT              │\n    │      ┌─────┐┌─────┐┌────┐              │\n    │   1 ─┤  &  ├┤  |  ├┤ ¬  ├─ 0           │\n    │   0 ─┤     ├┤     ├┤    ├─ 1           │\n    │      └─────┘└─────┘└────┘              │\n    │                                         │\n    │   {0, 1} with operations ∧, ∨, ¬      │\n    │                                         │\n    ╰─────────────────────────────────────────╯\n    "
+        ),
+        "Gray Codes": CardArtwork(
+            name: "Gray Codes",
+            theme: "binary_sequence",
+            asciiArt: "\n    ╭─────────────────────────────────────────╮\n    │                                         │\n    │   Standard    Gray Code                 │\n    │   00      →    00                       │\n    │   01      →    01                       │\n    │   10      →    11                       │\n    │   11      →    10                       │\n    │                                         │\n    │   One bit changes per step              │\n    │   (Reflected Binary Code)               │\n    │                                         │\n    ╰─────────────────────────────────────────╯\n    "
+        ),
+        "Gauss Circle Problem": CardArtwork(
+            name: "Gauss Circle Problem",
+            theme: "circle_lattice",
+            asciiArt: "\n    ╭─────────────────────────────────────────╮\n    │                                         │\n    │            ◆ ◆ ◆ ◆                   │\n    │          ◆ · · · · ◆                  │\n    │        ◆ · · · · · · ◆                │\n    │       ◆ · · ● · · · · ◆               │\n    │        ◆ · · · · · · ◆                │\n    │          ◆ · · · · ◆                  │\n    │            ◆ ◆ ◆ ◆                   │\n    │                                         │\n    │   How many lattice points in circle?   │\n    ╰─────────────────────────────────────────╯\n    "
+        ),
+        "Lattice Points": CardArtwork(
+            name: "Lattice Points",
+            theme: "grid_pattern",
+            asciiArt: "\n    ╭─────────────────────────────────────────╮\n    │                                         │\n    │   · · · · · · · · · · · · · · ·        │\n    │   · · · · · · · · · · · · · · ·        │\n    │   · · · · · · · · · · · · · · ·        │\n    │   · · · · · · ● · · · · · · · ·        │\n    │   · · · · · · · · · · · · · · ·        │\n    │   · · · · · · · · · · · · · · ·        │\n    │   · · · · · · · · · · · · · · ·        │\n    │                                         │\n    │   Integer coordinate points in ℤ²      │\n    ╰─────────────────────────────────────────╯\n    "
+        ),
+        "Sphere Geometry": CardArtwork(
+            name: "Sphere Geometry",
+            theme: "3d_geometry",
+            asciiArt: "\n    ╭─────────────────────────────────────────╮\n    │                                         │\n    │              ╭─────╮                   │\n    │            ╱         ╲                 │\n    │          ╱             ╲               │\n    │         │       ●       │              │\n    │          ╲             ╱               │\n    │            ╲         ╱                 │\n    │              ╰─────╯                   │\n    │                                         │\n    │   Surface area = 4πr²                  │\n    │   Volume = (4/3)πr³                    │\n    ╰─────────────────────────────────────────╯\n    "
+        ),
+        "Sphere Packing": CardArtwork(
+            name: "Sphere Packing",
+            theme: "3d_packing",
+            asciiArt: "\n    ╭─────────────────────────────────────────╮\n    │                                         │\n    │         ◎   ◎   ◎   ◎   ◎             │\n    │       ◎   ◎   ◎   ◎   ◎   ◎           │\n    │         ◎   ◎   ◎   ◎   ◎             │\n    │       ◎   ◎   ◎   ◎   ◎   ◎           │\n    │         ◎   ◎   ◎   ◎   ◎             │\n    │                                         │\n    │   Optimal sphere arrangement            │\n    │   in 3D space (FCC/HCP)                │\n    ╰─────────────────────────────────────────╯\n    "
         ),
     ]
 

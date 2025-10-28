@@ -9,7 +9,7 @@ struct CompactPlayerView: View {
         VStack(alignment: .leading, spacing: 4) {
             // Player summary row
             HStack(spacing: 8) {
-                Text(player.name)
+                Text(player.name.prefix(2))
                     .font(.caption)
                     .fontWeight(isCurrent ? .bold : .regular)
                     .frame(width: 30, alignment: .leading)

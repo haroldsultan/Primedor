@@ -16,6 +16,17 @@ struct WinnerView: View {
     
     var body: some View {
         VStack(spacing: 20) {
+            // Close button in top right
+            HStack {
+                Spacer()
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.gray)
+                }
+            }
+            .padding(.bottom, 8)
+            
             Text("🎉 Game Over! 🎉")
                 .font(.largeTitle)
                 .fontWeight(.bold)
