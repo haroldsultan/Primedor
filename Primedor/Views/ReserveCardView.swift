@@ -50,14 +50,18 @@ struct ReservedCardView: View {
             .font(.system(size: 8))
             .padding(.vertical, 2)
             .padding(.horizontal, 8)
-            .background(canAfford ? Color.blue : Color.gray)
+            .background(canAfford ? Color.green : Color.gray)
             .foregroundColor(.white)
             .cornerRadius(3)
             .disabled(!canAfford)
         }
         .padding(4)
-        .background(Color.orange.opacity(0.1))
+        .background(canAfford ? Color.green.opacity(0.1) : Color.white)
         .cornerRadius(4)
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(canAfford ? Color.green : Color.gray.opacity(0.3), lineWidth: 1)
+        )
     }
     
     func colorFor(_ type: TokenType) -> Color {

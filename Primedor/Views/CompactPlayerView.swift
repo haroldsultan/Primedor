@@ -76,7 +76,7 @@ struct CompactPlayerView: View {
                     ForEach(player.reservedCards) { card in
                         ReservedCardView(
                             card: card,
-                            canAfford: isCurrent,
+                            canAfford: isCurrent && GameRules.canAffordCard(player: player, card: card),
                             onBuy: { onBuyReserved(card) }
                         )
                     }
