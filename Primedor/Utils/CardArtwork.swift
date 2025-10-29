@@ -462,6 +462,7 @@ struct CardArtworkDatabase {
     ]
 
     static func artwork(for cardName: String) -> CardArtwork? {
-        return artworks[cardName]
+//        return artworks[cardName] // artwork does not look good
+        return nil
     }
 }

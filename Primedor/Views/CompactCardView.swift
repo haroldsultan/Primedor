@@ -9,14 +9,14 @@ struct CompactCardView: View {
     var body: some View {
         ZStack {
             // Background with artwork (30% opacity, centered)
-            if let artwork = CardArtworkDatabase.artworks[card.name] {
-                Text(artwork.asciiArt)
-                    .font(.system(size: 3, design: .monospaced))
-                    .opacity(0.5)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(.max)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+//            if let artwork = CardArtworkDatabase.artworks[card.name] {
+//                Text(artwork.asciiArt)
+//                    .font(.system(size: 3, design: .monospaced))
+//                    .opacity(0.5)
+//                    .multilineTextAlignment(.center)
+//                    .lineLimit(.max)
+//                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+//            }
             
             // Card content on top
             VStack(spacing: 2) {
