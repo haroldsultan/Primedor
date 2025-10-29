@@ -127,4 +127,12 @@ class Player: Identifiable, Codable {
     func claimMathematician(_ mathematician: Mathematician) {
         mathematicians.append(mathematician)
     }
+    
+    // Required to calculate the total number of permanent bonus cards/gems.
+    func totalBonusCount() -> Int {
+        // Assuming bonusCount(of: type) exists and returns the permanent bonus count for that type
+        return TokenType.allCases.reduce(0) { total, type in
+            total + bonusCount(of: type)
+        }
+    }
 }

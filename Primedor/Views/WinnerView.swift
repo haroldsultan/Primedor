@@ -16,64 +16,60 @@ struct WinnerView: View {
     }
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("🎉 Game Over! 🎉")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            Text("\(winner.name) Wins!")
-                .font(.title)
-                .foregroundColor(.blue)
-            
-            Text("\(winner.victoryPoints) Points")
-                .font(.title2)
-            
-            // Final standings
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Final Standings:")
-                    .font(.headline)
+        // Only show WinnerView if hideWinner is false
+        if !hideWinner {
+            VStack(spacing: 20) {
+                Text("🎉 Game Over! 🎉")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
                 
-                ForEach(sortedPlayers) { player in
-                    HStack {
-                        Text(player.name)
-                            .fontWeight(player.id == winner.id ? .bold : .regular)
-                        Spacer()
-                        Text("\(player.victoryPoints)pts")
-                        Text("(\(player.purchasedCards.count) cards)")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                Text("\(winner.name) Wins!")
+                    .font(.title)
+                    .foregroundColor(.blue)
+                
+                Text("\(winner.victoryPoints) Points")
+                    .font(.title2)
+                
+                // Final standings
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Final Standings:")
+                        .font(.headline)
+                    
+                    ForEach(sortedPlayers) { player in
+                        HStack {
+                            Text(player.name)
+                                .fontWeight(player.id == winner.id ? .bold : .regular)
+                            Spacer()
+                            Text("\(player.victoryPoints)pts")
+                            Text("(\(player.purchasedCards.count) cards)")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
                     }
+                }
+                .padding()
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(8)
+                
+                VStack(spacing: 12) {
+                    Button("New Game") {
+                        onDismiss()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .font(.title3)
+                    
+                    Button("View Game") {
+                        hideWinner = true
+                    }
+                    .buttonStyle(.bordered)
+                    .font(.title3)
                 }
             }
             .padding()
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(8)
-            
-            VStack(spacing: 12) {
-                Button("New Game") {
-                    onDismiss()
-                }
-                .buttonStyle(.borderedProminent)
-                .font(.title3)
-                
-                Button("View Game") {
-                    hideWinner = true
-                }
-                .buttonStyle(.bordered)
-                .font(.title3)
-            }
-        }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(16)
-        .shadow(radius: 10)
-        .padding(40)
-        .opacity(hideWinner ? 0 : 1)
-        .allowsHitTesting(!hideWinner)
-        .onTapGesture {
-            if hideWinner {
-                hideWinner = false
-            }
+            .background(Color.white)
+            .cornerRadius(16)
+            .shadow(radius: 10)
+            .padding(40)
         }
     }
 }

@@ -96,7 +96,8 @@ struct GameRules {
     
     /// Check if player can afford a card
     /// Gold tokens count as wildcards for ANY color
-    static func canAffordCard(player: Player, card: Card) -> Bool {
+    /// pendingTokens: dict of [TokenType: count] for tokens collected this turn
+    static func canAffordCard(player: Player, card: Card, pendingTokens: [TokenType: Int] = [:]) -> Bool {
         // Calculate what we need to spend
         var remainingCost = card.cost  // Copy of cost dictionary
         
@@ -108,6 +109,7 @@ struct GameRules {
         }
         
         // Step 2: Spend colored tokens (not gold) for what we still need
+        // Check BOTH actual tokens and pending tokens
         for (tokenType, neededCount) in remainingCost {
             if tokenType == .perfect {
                 continue  // Skip gold for now
@@ -115,16 +117,21 @@ struct GameRules {
             
             if neededCount > 0 {
                 let availableColored = player.tokenCount(of: tokenType)
-                let amountToSpend = min(availableColored, neededCount)
+                let availablePending = pendingTokens[tokenType] ?? 0
+                let totalAvailable = availableColored + availablePending
+                let amountToSpend = min(totalAvailable, neededCount)
                 remainingCost[tokenType] = neededCount - amountToSpend
             }
         }
         
         // Step 3: Check if remaining cost can be covered by gold tokens
+        // Gold can be from actual tokens OR pending
         let totalStillNeeded = remainingCost.filter { $0.key != .perfect }.values.reduce(0, +)
         let goldAvailable = player.tokenCount(of: .perfect)
+        let goldPending = pendingTokens[.perfect] ?? 0
+        let totalGoldAvailable = goldAvailable + goldPending
         
-        if goldAvailable >= totalStillNeeded {
+        if totalGoldAvailable >= totalStillNeeded {
             return true  // Gold tokens can cover the rest
         }
         

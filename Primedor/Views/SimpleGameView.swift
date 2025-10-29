@@ -7,6 +7,7 @@ struct SimpleGameView: View {
     @State private var players: [Player]
     @State private var currentPlayerIndex = 0
     @State private var updateTrigger = 0
+    @State private var turnNumber = 1
     @State private var visibleCardsTier1: [Card]
     @State private var visibleCardsTier2: [Card]
     @State private var visibleCardsTier3: [Card]
@@ -28,6 +29,14 @@ struct SimpleGameView: View {
     @State private var showReserveWarning = false
     @State private var cardToReserve: Card?
     @State private var reserveWarningMessage = ""
+    
+    // Animation state
+    @State private var animatingCardId: UUID?
+    
+    // Frame tracking for card journey animation
+    @State private var cardGridFrame: CGRect = .zero
+    @State private var playerAreaFrame: CGRect = .zero
+    @State private var animatingCardStartFrame: CGRect = .zero
     
     // NEW: Track tokens pending finalization until end of turn
     @State private var pendingTokensByPlayer: [UUID: [TokenType: Int]] = [:]
@@ -63,13 +72,14 @@ struct SimpleGameView: View {
     /// Legacy initializer for backward compatibility (2-4 players with P1 human, rest AI)
     init(playerCount: Int) {
         let validPlayerCount = max(2, min(playerCount, 4))
+        let names = ["Bob", "Abby", "Emma", "Ann"]
         
         var playerArray: [Player] = []
         for i in 1...validPlayerCount {
             if i == 1 {
-                playerArray.append(Player(name: "P1", isAI: false))
+                playerArray.append(Player(name: names[i-1], isAI: false))
             } else {
-                playerArray.append(Player(name: "AI\(i)", isAI: true))
+                playerArray.append(Player(name: names[i-1], isAI: true))
             }
         }
         
@@ -135,6 +145,11 @@ struct SimpleGameView: View {
                     .foregroundColor(.red)
                     
                     Spacer()
+                    
+                    Text("Turn \(turnNumber)")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.blue)
                 }
                 .padding(.horizontal)
                 .confirmationDialog("Start a new game?", isPresented: $showNewGameConfirm) {
@@ -148,7 +163,7 @@ struct SimpleGameView: View {
                 .onAppear {
                     // If first player is AI, have them take their turn
                     if let player = currentPlayer, player.isAI {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                             self.executeAITurn()
                         }
                     }
@@ -165,7 +180,6 @@ struct SimpleGameView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 4) {
                                 ForEach(availableNobles) { noble in
-                                    // FIX BUG #1: Remove nested button - use onTapGesture instead
                                     NobleView(
                                         mathematician: noble,
                                         canClaim: canClaimNoble(noble)
@@ -186,6 +200,13 @@ struct SimpleGameView: View {
                     VStack(spacing: 8) {
                         // Card grid - 3 rows
                         cardGridSection
+                            .background(
+                                GeometryReader { geo in
+                                    Color.clear.onAppear {
+                                        cardGridFrame = geo.frame(in: .global)
+                                    }
+                                }
+                            )
                         
                         // This turn info box with token display
                         VStack(alignment: .leading, spacing: 0) {
@@ -221,6 +242,13 @@ struct SimpleGameView: View {
                         
                         // Players
                         playersSection
+                            .background(
+                                GeometryReader { geo in
+                                    Color.clear.onAppear {
+                                        playerAreaFrame = geo.frame(in: .global)
+                                    }
+                                }
+                            )
                         
                         // End Turn button at bottom
                         Button("End Turn") {
@@ -234,7 +262,6 @@ struct SimpleGameView: View {
                     }
                 }
             }
-            .id(updateTrigger)
             
             // Winner overlay
             if showWinner, let winner = winner {
@@ -242,7 +269,6 @@ struct SimpleGameView: View {
                     .ignoresSafeArea()
                 
                 WinnerView(winner: winner, allPlayers: players) {
-                    // Return to setup - dismiss entire game
                     dismiss()
                 }
             }
@@ -283,7 +309,6 @@ struct SimpleGameView: View {
             
             // Tier 3 row
             HStack(spacing: 4) {
-                // Deck pile with reserve button
                 Button {
                     reserveFromDeck(tier: .three)
                 } label: {
@@ -309,13 +334,14 @@ struct SimpleGameView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
                         ForEach(visibleCardsTier3) { card in
-                            // FIX BUG #1: Remove nested button - use onTapGesture instead for detail view
                             CompactCardView(
                                 card: card,
-                                canAfford: (currentPlayer != nil) ? GameRules.canAffordCard(player: currentPlayer!, card: card) : false,
+                                canAfford: (currentPlayer != nil && turnAction != .collectingTokens) ? GameRules.canAffordCard(player: currentPlayer!, card: card, pendingTokens: pendingTokensByPlayer[currentPlayer!.id] ?? [:]) : false,
                                 onBuy: { buyCard(card) },
                                 onReserve: { reserveCard(card) }
                             )
+                            .cardDeparture(isAnimating: animatingCardId == card.id)
+                            .cardArrival(shouldAppear: true)
                             .onTapGesture {
                                 selectedCard = card
                             }
@@ -327,7 +353,6 @@ struct SimpleGameView: View {
             
             // Tier 2 row
             HStack(spacing: 4) {
-                // Deck pile with reserve button
                 Button {
                     reserveFromDeck(tier: .two)
                 } label: {
@@ -353,13 +378,14 @@ struct SimpleGameView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
                         ForEach(visibleCardsTier2) { card in
-                            // FIX BUG #1: Remove nested button - use onTapGesture instead
                             CompactCardView(
                                 card: card,
-                                canAfford: (currentPlayer != nil) ? GameRules.canAffordCard(player: currentPlayer!, card: card) : false,
+                                canAfford: (currentPlayer != nil && turnAction != .collectingTokens) ? GameRules.canAffordCard(player: currentPlayer!, card: card, pendingTokens: pendingTokensByPlayer[currentPlayer!.id] ?? [:]) : false,
                                 onBuy: { buyCard(card) },
                                 onReserve: { reserveCard(card) }
                             )
+                            .cardDeparture(isAnimating: animatingCardId == card.id)
+                            .cardArrival(shouldAppear: true)
                             .onTapGesture {
                                 selectedCard = card
                             }
@@ -371,7 +397,6 @@ struct SimpleGameView: View {
             
             // Tier 1 row
             HStack(spacing: 4) {
-                // Deck pile with reserve button
                 Button {
                     reserveFromDeck(tier: .one)
                 } label: {
@@ -397,13 +422,14 @@ struct SimpleGameView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
                         ForEach(visibleCardsTier1) { card in
-                            // FIX BUG #1: Remove nested button - use onTapGesture instead
                             CompactCardView(
                                 card: card,
-                                canAfford: (currentPlayer != nil) ? GameRules.canAffordCard(player: currentPlayer!, card: card) : false,
+                                canAfford: (currentPlayer != nil && turnAction != .collectingTokens) ? GameRules.canAffordCard(player: currentPlayer!, card: card, pendingTokens: pendingTokensByPlayer[currentPlayer!.id] ?? [:]) : false,
                                 onBuy: { buyCard(card) },
                                 onReserve: { reserveCard(card) }
                             )
+                            .cardDeparture(isAnimating: animatingCardId == card.id)
+                            .cardArrival(shouldAppear: true)
                             .onTapGesture {
                                 selectedCard = card
                             }
@@ -457,11 +483,14 @@ struct SimpleGameView: View {
         // Reserve the card
         player.reserveCard(cardToReserve)
         
+        // Play sound effect
+        SoundManager.shared.playCardReserveSound()
+        
         // Add gold token to PENDING (not directly to player)
         if calculateTotalTokensWithPending(for: player) < 10 {
             if tokenSupply.tokens[.perfect]?.count ?? 0 > 0 {
                 pendingTokensByPlayer[player.id, default: [.perfect: 0]][.perfect, default: 0] += 1
-                tokenSupply.take(.perfect, count: 1) // Remove from supply
+                tokenSupply.take(.perfect, count: 1)
             }
         }
         
@@ -472,7 +501,7 @@ struct SimpleGameView: View {
             }
             turnAction = .reservedCard
             updateTrigger += 1
-            return  // Don't auto-end if they need to discard
+            return
         }
         
         turnAction = .reservedCard
@@ -525,7 +554,6 @@ struct SimpleGameView: View {
                 .fontWeight(.bold)
             
             ForEach(players) { player in
-                // FIX BUG #1: Remove nested button - use onTapGesture instead
                 CompactPlayerView(
                     player: player,
                     isCurrent: player.id == currentPlayer?.id,
@@ -569,7 +597,11 @@ struct SimpleGameView: View {
             if canClaimNoble(noble) {
                 player.claimMathematician(noble)
                 availableNobles.removeAll { $0.id == noble.id }
-                break // Only claim one noble per turn
+                
+                // Play sound effect when noble is claimed
+                SoundManager.shared.playNobleClaimSound()
+                
+                break
             }
         }
     }
@@ -608,6 +640,9 @@ struct SimpleGameView: View {
             errorMessage = ""
             updateTrigger += 1
             
+            // Play token collection sound
+            SoundManager.shared.playTokenCollectSound()
+            
             if calculateTotalTokensWithPending(for: player) > 10 {
                 if !player.isAI {
                     errorMessage = "You have over 10 tokens. Tap one of your tokens to discard it."
@@ -624,13 +659,11 @@ struct SimpleGameView: View {
         let isCollectedThisTurn = (collectedTypesCount[type] ?? 0) > 0
 
         if turnAction == .collectingTokens && isCollectedThisTurn {
-            // Case 1: Undo a token collection - return from pending back to supply
             if let pendingCount = pendingTokensByPlayer[player.id]?[type], pendingCount > 0 {
                 pendingTokensByPlayer[player.id]?[type] = pendingCount - 1
                 if pendingTokensByPlayer[player.id]?[type] == 0 {
                     pendingTokensByPlayer[player.id]?.removeValue(forKey: type)
                 }
-                // Return one token of this type back to supply
                 tokenSupply.returnTokens([Token(type: type)])
             }
             
@@ -645,7 +678,6 @@ struct SimpleGameView: View {
             }
             errorMessage = ""
         } else if calculateTotalTokensWithPending(for: player) > 10 {
-            // Case 2: Discarding due to 10-token limit
             if player.tokenCount(of: type) > 0 {
                 let returned = player.removeTokens(type, count: 1)
                 tokenSupply.returnTokens(returned)
@@ -657,7 +689,6 @@ struct SimpleGameView: View {
                 errorMessage = "You don't have a token of that type to discard."
             }
         } else {
-            // Case 3: Invalid action
             errorMessage = "Cannot return that token at this time."
         }
 
@@ -673,13 +704,11 @@ struct SimpleGameView: View {
         var goldTokensToSpend = 0
         var tokensToReturn: [TokenType: Int] = [:]
 
-        // 1. Calculate net cost after applying bonuses
         for (type, cost) in costToPay {
             let bonus = player.bonusCount(of: type)
             costToPay[type] = max(0, cost - bonus)
         }
 
-        // 2. Use specific tokens first, note the shortfall
         for (type, required) in costToPay where required > 0 {
             let playerHas = player.tokenCount(of: type)
             let spendSpecific = min(required, playerHas)
@@ -689,7 +718,6 @@ struct SimpleGameView: View {
                 tokensToReturn[type, default: 0] += spendSpecific
             }
 
-            // 3. Use gold tokens to cover the remaining shortfall
             if shortfall > 0 {
                 let goldAvailable = player.tokenCount(of: .perfect) - goldTokensToSpend
                 let useGold = min(shortfall, goldAvailable)
@@ -698,7 +726,6 @@ struct SimpleGameView: View {
             }
         }
         
-        // 4. Execute the token removal/return
         if goldTokensToSpend > 0 {
             let spentGold = player.removeTokens(.perfect, count: goldTokensToSpend)
             tokenSupply.returnTokens(spentGold)
@@ -726,7 +753,7 @@ struct SimpleGameView: View {
             return
         }
         
-        if !GameRules.canAffordCard(player: player, card: card) {
+        if !GameRules.canAffordCard(player: player, card: card, pendingTokens: pendingTokensByPlayer[player.id] ?? [:]) {
             if !player.isAI {
                 errorMessage = "Can't afford this card"
             }
@@ -734,20 +761,30 @@ struct SimpleGameView: View {
         }
         
         payForCard(card)
-        
         player.purchaseCard(card)
-        removeAndReplaceCard(card)
         
-        // Check for nobles
+        // Play card buy sound
+        SoundManager.shared.playCardBuySound()
+        
+        // Trigger animation for human players
+        if !player.isAI {
+            animatingCardId = card.id
+        }
+        
         claimNobleIfPossible()
         
         turnAction = .boughtCard
         errorMessage = ""
-        updateTrigger += 1
         
-        // ONLY auto-end for HUMAN players
+        // Wait for animation, then replace card
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            removeAndReplaceCard(card)
+            animatingCardId = nil
+            updateTrigger += 1
+        }
+        
         if !player.isAI {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 self.endTurn()
             }
         }
@@ -767,7 +804,7 @@ struct SimpleGameView: View {
             return
         }
         
-        if !GameRules.canAffordCard(player: player, card: card) {
+        if !GameRules.canAffordCard(player: player, card: card, pendingTokens: pendingTokensByPlayer[player.id] ?? [:]) {
             if !player.isAI {
                 errorMessage = "Can't afford this card"
             }
@@ -775,19 +812,18 @@ struct SimpleGameView: View {
         }
         
         payForCard(card)
-        
-        // Purchase and remove from reserved
         player.purchaseCard(card)
         player.removeReservedCard(card)
         
-        // Check for nobles
+        // Play card buy sound
+        SoundManager.shared.playCardBuySound()
+        
         claimNobleIfPossible()
         
         turnAction = .boughtCard
         errorMessage = ""
         updateTrigger += 1
         
-        // ONLY auto-end for HUMAN players
         if !player.isAI {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self.endTurn()
@@ -815,11 +851,9 @@ struct SimpleGameView: View {
             return
         }
         
-        // Check if we can get gold token
         let goldAvailable = tokenSupply.tokens[.perfect]?.count ?? 0 > 0
         let canGetGold = calculateTotalTokensWithPending(for: player) < 10 && goldAvailable
         
-        // If no gold, show confirmation dialog (ONLY for human players)
         if !canGetGold {
             if !player.isAI {
                 cardToReserve = card
@@ -830,13 +864,11 @@ struct SimpleGameView: View {
                 }
                 showReserveWarning = true
             } else {
-                // AI just reserves without warning
                 performReserve(card)
             }
             return
         }
         
-        // Has gold available - reserve immediately
         performReserve(card)
     }
     
@@ -845,35 +877,48 @@ struct SimpleGameView: View {
             return
         }
         
-        // Reserve the card
         player.reserveCard(card)
         
-        // Add gold token to PENDING (not directly to player)
+        // Play sound effect
+        SoundManager.shared.playCardReserveSound()
+        
+        // Trigger animation for human players
+        if !player.isAI {
+            animatingCardId = card.id
+        }
+        
         if calculateTotalTokensWithPending(for: player) < 10 {
             if tokenSupply.tokens[.perfect]?.count ?? 0 > 0 {
                 pendingTokensByPlayer[player.id, default: [:]][.perfect, default: 0] += 1
-                tokenSupply.take(.perfect, count: 1) // Remove from supply
+                tokenSupply.take(.perfect, count: 1)
             }
         }
         
-        // Check if over limit after reserving
         if calculateTotalTokensWithPending(for: player) > 10 {
             errorMessage = "You are over 10 tokens. You must discard tokens."
             turnAction = .reservedCard
-            updateTrigger += 1
-            removeAndReplaceCard(card)
+            
+            // Wait for animation, then replace card
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                removeAndReplaceCard(card)
+                animatingCardId = nil
+                updateTrigger += 1
+            }
             return
         }
         
-        removeAndReplaceCard(card)
+        // Wait for animation, then replace card
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            removeAndReplaceCard(card)
+            animatingCardId = nil
+            updateTrigger += 1
+        }
         
         turnAction = .reservedCard
         errorMessage = ""
-        updateTrigger += 1
         
-        // ONLY auto-end for HUMAN players
         if !player.isAI {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 self.endTurn()
             }
         }
@@ -885,7 +930,6 @@ struct SimpleGameView: View {
             if !deckTier1.isEmpty {
                 visibleCardsTier1.append(deckTier1.removeFirst())
             }
-            // Ensure we never exceed 4 visible cards
             while visibleCardsTier1.count > 4 {
                 visibleCardsTier1.removeFirst()
             }
@@ -894,7 +938,6 @@ struct SimpleGameView: View {
             if !deckTier2.isEmpty {
                 visibleCardsTier2.append(deckTier2.removeFirst())
             }
-            // Ensure we never exceed 4 visible cards
             while visibleCardsTier2.count > 4 {
                 visibleCardsTier2.removeFirst()
             }
@@ -903,7 +946,6 @@ struct SimpleGameView: View {
             if !deckTier3.isEmpty {
                 visibleCardsTier3.append(deckTier3.removeFirst())
             }
-            // Ensure we never exceed 4 visible cards
             while visibleCardsTier3.count > 4 {
                 visibleCardsTier3.removeFirst()
             }
@@ -932,14 +974,15 @@ struct SimpleGameView: View {
             return
         }
         
+        // Play turn end sound
+        SoundManager.shared.playTurnEndSound()
+        
         // FINALIZE: Transfer all pending tokens to the player NOW
         if let pendingTokens = pendingTokensByPlayer[player.id] {
             for (type, count) in pendingTokens {
-                for _ in 0..<count {
-                    if let tokens = tokenSupply.tokens[type], tokens.count > 0 {
-                        let token = tokens.first!
-                        player.addTokens([token])
-                    }
+                if count > 0 {
+                    let tokensToAdd = (0..<count).map { _ in Token(type: type) }
+                    player.addTokens(tokensToAdd)
                 }
             }
             pendingTokensByPlayer[player.id] = [:]
@@ -949,19 +992,28 @@ struct SimpleGameView: View {
         if let gameWinner = WinCondition.checkWinner(players: players, currentPlayerIndex: currentPlayerIndex) {
             showWinner = true
             winner = gameWinner
+            
+            // Play win sound
+            SoundManager.shared.playGameWinSound()
+            
             return
         }
         
         currentPlayerIndex = (currentPlayerIndex + 1) % playerCount
+        
+        // Increment turn number when we cycle back to first player
+        if currentPlayerIndex == 0 {
+            turnNumber += 1
+        }
+        
         tokensCollectedThisTurn = 0
         collectedTypesCount = [:]
         turnAction = .none
-        errorMessage = ""  // Clear error before next turn
+        errorMessage = ""
         updateTrigger += 1
         
-        // Only execute AI turn if the NEXT player is AI
         if let nextPlayer = currentPlayer, nextPlayer.isAI {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self.executeAITurn()
             }
         }
@@ -976,17 +1028,14 @@ struct SimpleGameView: View {
             return
         }
         
-        // Prevent multiple AI turns running simultaneously
         guard !isAIThinking else {
             return
         }
         
         isAIThinking = true
         
-        // Get all visible cards for the AI to consider
         let allVisibleCards = visibleCardsTier1 + visibleCardsTier2 + visibleCardsTier3
         
-        // Get the AI's move
         let collectedTypesSet = Set(collectedTypesCount.keys)
         let aiAction = AIPlayer.makeMove(
             player: player,
@@ -997,11 +1046,9 @@ struct SimpleGameView: View {
             tokensCollectedThisTurn: tokensCollectedThisTurn
         )
         
-        // Execute the AI's action with a small delay for UI feedback
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             switch aiAction {
             case .collectToken(let type):
-                // Clear error before AI's action
                 self.errorMessage = ""
                 self.collectToken(type)
                 
@@ -1009,23 +1056,19 @@ struct SimpleGameView: View {
                     self.performAIDiscard()
                 }
                 
-                // Check if THIS action succeeded (by checking if error was set)
                 if self.errorMessage.isEmpty {
-                    // This token collection succeeded, continue AI turn
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         self.executeAITurn()
                     }
                 } else {
-                    // This token collection failed, end turn
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         self.endTurn()
                     }
                 }
                 
             case .buyCard(let card):
                 self.buyCard(card)
-                // After buying, end turn
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     self.endTurn()
                 }
                 
@@ -1036,8 +1079,7 @@ struct SimpleGameView: View {
                     self.performAIDiscard()
                 }
                 
-                // After reserving, end turn
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     self.endTurn()
                 }
                 
@@ -1055,6 +1097,19 @@ struct SimpleGameView: View {
         }
         
         while calculateTotalTokensWithPending(for: player) > 10 {
+            if let pendingTokens = pendingTokensByPlayer[player.id], !pendingTokens.isEmpty {
+                let sortedPending = pendingTokens.sorted(by: { $0.value > $1.value })
+                if let (typeToDiscard, count) = sortedPending.first, count > 0 {
+                    pendingTokensByPlayer[player.id]?[typeToDiscard] = count - 1
+                    if pendingTokensByPlayer[player.id]?[typeToDiscard] == 0 {
+                        pendingTokensByPlayer[player.id]?.removeValue(forKey: typeToDiscard)
+                    }
+                    tokenSupply.returnTokens([Token(type: typeToDiscard)])
+                    updateTrigger += 1
+                    continue
+                }
+            }
+            
             let removableTokens = player.tokens.filter { $0.value.count > 0 }
             
             guard let typeToDiscard = removableTokens
@@ -1086,7 +1141,6 @@ struct SimpleGameView: View {
             return
         }
         
-        // Only allow returning tokens that were collected this turn
         guard collectedTypesCount[tokenType, default: 0] > 0 else {
             if !player.isAI {
                 errorMessage = "No tokens of that type to return"
@@ -1094,17 +1148,14 @@ struct SimpleGameView: View {
             return
         }
         
-        // Remove from PENDING, not from player
         if let pendingCount = pendingTokensByPlayer[player.id]?[tokenType], pendingCount > 0 {
             pendingTokensByPlayer[player.id]?[tokenType] = pendingCount - 1
             if pendingTokensByPlayer[player.id]?[tokenType] == 0 {
                 pendingTokensByPlayer[player.id]?.removeValue(forKey: tokenType)
             }
-            // Return one token of this type back to supply
             tokenSupply.returnTokens([Token(type: tokenType)])
         }
         
-        // Update tracking
         if var count = collectedTypesCount[tokenType] {
             count -= 1
             if count == 0 {
@@ -1116,7 +1167,6 @@ struct SimpleGameView: View {
         
         tokensCollectedThisTurn = max(0, tokensCollectedThisTurn - 1)
         
-        // FIX BUG #2: Reset turnAction when all collected tokens are returned
         if tokensCollectedThisTurn == 0 {
             turnAction = .none
         }

@@ -5,91 +5,7 @@ struct CompactPlayerView: View {
     let isCurrent: Bool
     let onBuyReserved: (Card) -> Void
     
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Player summary row
-            HStack(spacing: 8) {
-                Text(player.name.prefix(2))
-                    .font(.caption)
-                    .fontWeight(isCurrent ? .bold : .regular)
-                    .frame(width: 30, alignment: .leading)
-                
-                // Tokens
-                HStack(spacing: 2) {
-                    ForEach(TokenType.allCases, id: \.self) { type in
-                        let count = player.tokenCount(of: type)
-                        if count > 0 {
-                            HStack(spacing: 1) {
-                                Circle()
-                                    .fill(colorFor(type))
-                                    .frame(width: 10, height: 10)
-                                Text("\(count)")
-                                    .font(.system(size: 9))
-                            }
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                
-                // Bonuses
-                HStack(spacing: 2) {
-                    ForEach(TokenType.allCases, id: \.self) { type in
-                        let bonus = player.bonusCount(of: type)
-                        if bonus > 0 {
-                            HStack(spacing: 1) {
-                                Circle()
-                                    .fill(colorFor(type))
-                                    .frame(width: 10, height: 10)
-                                    .overlay(
-                                        Text("★")
-                                            .font(.system(size: 6))
-                                            .foregroundColor(.white)
-                                    )
-                                Text("\(bonus)")
-                                    .font(.system(size: 9))
-                            }
-                        }
-                    }
-                }
-                
-                // Nobles count
-                if !player.mathematicians.isEmpty {
-                    Text("👑\(player.mathematicians.count)")
-                        .font(.system(size: 10))
-                }
-                
-                Text("\(player.purchasedCards.count)c")
-                    .font(.caption2)
-                Text("\(player.victoryPoints)p")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(.blue)
-            }
-            
-            // Reserved cards (if any)
-            if !player.reservedCards.isEmpty {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Reserved:")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
-                    
-                    ForEach(player.reservedCards) { card in
-                        ReservedCardView(
-                            card: card,
-                            canAfford: isCurrent && GameRules.canAffordCard(player: player, card: card),
-                            onBuy: { onBuyReserved(card) }
-                        )
-                    }
-                }
-                .padding(.top, 2)
-            }
-        }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 6)
-        .background(isCurrent ? Color.blue.opacity(0.1) : Color.clear)
-        .cornerRadius(4)
-    }
-    
+    // Helper function for color (Keep this the same)
     func colorFor(_ type: TokenType) -> Color {
         switch type {
         case .prime: return .red
@@ -99,5 +15,113 @@ struct CompactPlayerView: View {
         case .sequence: return .gray
         case .perfect: return .yellow
         }
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            
+            // MARK: - Line 1: Name, Resources, Nobles, Points
+            HStack(spacing: 8) {
+                
+                // 1. Player Name (SMALLER FONT)
+                Text(player.name)
+                    .font(.caption) // Reduced font size significantly
+                    .fontWeight(isCurrent ? .bold : .medium)
+                    .foregroundColor(isCurrent ? .primary : .secondary)
+                    .frame(width: 40, alignment: .leading) // Reduced frame width
+                
+                // 2. Combined Tokens (Circle) and Permanent Bonuses (Rectangle)
+                // (Resource section remains color-grouped for clarity)
+                HStack(spacing: 4) {
+                    ForEach(TokenType.allCases, id: \.self) { type in
+                        let tokenCount = player.tokenCount(of: type)
+                        let bonusCount = player.bonusCount(of: type)
+
+                        if tokenCount > 0 || bonusCount > 0 {
+                            
+                            // Display Temporary Tokens (Circle + Count)
+                            if tokenCount > 0 {
+                                Circle()
+                                    .fill(colorFor(type))
+                                    .frame(width: 15, height: 15)
+                                    .overlay(
+                                        Text("\(tokenCount)")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundColor(.white)
+                                    )
+                            }
+                            
+                            // Display Permanent Bonuses (Rounded Rectangle + Count)
+                            if bonusCount > 0 {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(colorFor(type))
+                                    .frame(width: 15, height: 15)
+                                    .overlay(
+                                        Text("\(bonusCount)")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundColor(.white)
+                                    )
+                                    .padding(.leading, tokenCount > 0 ? 2 : 0)
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                // 3. Nobles, Tokens, and Cards (New Combined Stat Block)
+                HStack(spacing: 4) {
+                    
+                    // Nobles
+                    if !player.mathematicians.isEmpty {
+                        Text("👑\(player.mathematicians.count)")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    }
+                    
+                    // Total Tokens (New position, next to cards)
+                    Text("\(player.totalTokenCount)t")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+
+                    // Total Cards
+                    Text("\(player.purchasedCards.count)c")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                
+                // 4. Victory Points (Most prominent right-aligned)
+                Text("\(player.victoryPoints)p")
+                    .font(.headline)
+                    .fontWeight(.heavy)
+                    .foregroundColor(.black)
+            }
+            
+            // MARK: - Reserved Card Detail (Always visible and vertical)
+            if !player.reservedCards.isEmpty {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Reserved:")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(player.reservedCards) { card in
+                            ReservedCardView(
+                                card: card,
+                                canAfford: isCurrent && GameRules.canAffordCard(player: player, card: card, pendingTokens: [:]),
+                                onBuy: { onBuyReserved(card) }
+                            )
+                        }
+                    }
+                    .padding(.leading, 8)
+                }
+                .padding(.leading, 10)
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(isCurrent ? Color.blue.opacity(0.1) : Color.clear)
+        )
     }
 }

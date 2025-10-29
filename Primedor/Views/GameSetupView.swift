@@ -2,16 +2,31 @@ import SwiftUI
 
 struct GameSetupView: View {
     @StateObject private var playerConfig = PlayerConfigurationManager(playerCount: 2)
+    @StateObject private var gameSettings = GameSettings.shared
     @State private var showGame: Bool = false
     @State private var gameID = UUID()
     @State private var playerCount: Int = 2
+    @State private var showAudioSettings = false
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                Text("PRIMEDOR")
-                    .font(.system(size: 48, weight: .bold))
-                    .padding(.bottom, 4)
+                // Header with settings button
+                HStack {
+                    Text("PRIMEDOR")
+                        .font(.system(size: 48, weight: .bold))
+                    
+                    Spacer()
+                    
+                    Button(action: { showAudioSettings = true }) {
+                        Image(systemName: "speaker.wave.2.fill")
+                            .font(.title2)
+                    }
+                    .sheet(isPresented: $showAudioSettings) {
+                        AudioSettingsView()
+                    }
+                }
+                .padding(.bottom, 4)
                 
                 // Player count selector
                 VStack(alignment: .leading, spacing: 8) {
@@ -53,8 +68,10 @@ struct GameSetupView: View {
                 
                 // Start Game button
                 Button("Start Game") {
+                    SoundManager.shared.playButtonClickSound()
                     gameID = UUID()
                     showGame = true
+                    SoundManager.shared.startBackgroundMusic()
                 }
                 .buttonStyle(.borderedProminent)
                 .font(.title2)
@@ -77,47 +94,105 @@ struct GameSetupView: View {
                 SimpleGameView(players: playerConfig.createPlayers())
                     .id(gameID)
             }
+            .onAppear {
+                SoundManager.shared.startBackgroundMusic()
+            }
         }
     }
 }
 
-/// Individual row for configuring a single player - compact design
+/// Individual row for configuring a single player - expanded layout with more space
 struct PlayerConfigRow: View {
     @Binding var config: PlayerConfig
     let playerNumber: Int
     
     var body: some View {
-        HStack(spacing: 8) {
-            Text("P\(playerNumber)")
-                .font(.system(size: 12, weight: .semibold))
-                .frame(width: 28, alignment: .center)
-            
-            // Human / CPU toggle
-            Picker("Type", selection: $config.isAI) {
-                Text("H").tag(false)
-                Text("C").tag(true)
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Text("P\(playerNumber)")
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(width: 28, alignment: .center)
+                
+                // Human / CPU toggle - full width
+                Picker("Type", selection: $config.isAI) {
+                    Text("Human").tag(false)
+                    Text("AI").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .font(.system(size: 12))
+                
+                Spacer()
             }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 90)
-            .font(.system(size: 12))
             
-            // Name input (only for human players)
-            if !config.isAI {
-                TextField("Name", text: $config.name)
-                    .textFieldStyle(.roundedBorder)
-                    .lineLimit(1)
-                    .font(.system(size: 12))
-            } else {
-                Text(config.name)
-                    .foregroundColor(.gray)
-                    .font(.system(size: 12))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            // Name input - always editable
+            TextField("Player Name", text: $config.name)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(1)
+                .font(.system(size: 12))
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
         .padding(.horizontal, 8)
         .background(Color.gray.opacity(0.1))
         .cornerRadius(6)
+    }
+}
+
+// MARK: - Audio Settings View
+
+struct AudioSettingsView: View {
+    @Environment(\.dismiss) var dismiss
+    @StateObject private var gameSettings = GameSettings.shared
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Background Music")) {
+                    Toggle("Enable Music", isOn: $gameSettings.isBackgroundMusicEnabled)
+                    
+                    if gameSettings.isBackgroundMusicEnabled {
+                        HStack {
+                            Text("Volume")
+                                .foregroundColor(.secondary)
+                            Slider(value: $gameSettings.musicVolume, in: 0...1, step: 0.1)
+                            Text("\(Int(gameSettings.musicVolume * 100))%")
+                                .foregroundColor(.secondary)
+                                .frame(width: 45, alignment: .trailing)
+                        }
+                    }
+                }
+                
+                Section(header: Text("Sound Effects")) {
+                    Toggle("Enable Sound Effects", isOn: $gameSettings.areSoundEffectsEnabled)
+                    
+                    if gameSettings.areSoundEffectsEnabled {
+                        HStack {
+                            Text("Volume")
+                                .foregroundColor(.secondary)
+                            Slider(value: $gameSettings.sfxVolume, in: 0...1, step: 0.1)
+                            Text("\(Int(gameSettings.sfxVolume * 100))%")
+                                .foregroundColor(.secondary)
+                                .frame(width: 45, alignment: .trailing)
+                        }
+                        
+                        Button(action: {
+                            SoundManager.shared.playButtonClickSound()
+                        }) {
+                            Text("Test Sound")
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Audio Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 }
 
