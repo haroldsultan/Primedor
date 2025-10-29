@@ -33,6 +33,9 @@ struct SimpleGameView: View {
     // Animation state
     @State private var animatingCardId: UUID?
     
+    // Track newly drawn cards (for NEW badge)
+    @State private var newlyDrawnCardIds: Set<UUID> = []
+    
     // Frame tracking for card journey animation
     @State private var cardGridFrame: CGRect = .zero
     @State private var playerAreaFrame: CGRect = .zero
@@ -72,7 +75,7 @@ struct SimpleGameView: View {
     /// Legacy initializer for backward compatibility (2-4 players with P1 human, rest AI)
     init(playerCount: Int) {
         let validPlayerCount = max(2, min(playerCount, 4))
-        let names = ["Bob", "Abby", "Emma", "Ann"]
+        let names = ["Emma", "Abby", "Bob", "Ann"]
         
         var playerArray: [Player] = []
         for i in 1...validPlayerCount {
@@ -267,6 +270,7 @@ struct SimpleGameView: View {
             if showWinner, let winner = winner {
                 Color.black.opacity(0.4)
                     .ignoresSafeArea()
+                    .allowsHitTesting(false)
                 
                 WinnerView(winner: winner, allPlayers: players) {
                     dismiss()
@@ -341,7 +345,7 @@ struct SimpleGameView: View {
                                 onReserve: { reserveCard(card) }
                             )
                             .cardDeparture(isAnimating: animatingCardId == card.id)
-                            .cardArrival(shouldAppear: true)
+                            .cardArrival(shouldShowBadge: newlyDrawnCardIds.contains(card.id))
                             .onTapGesture {
                                 selectedCard = card
                             }
@@ -385,7 +389,7 @@ struct SimpleGameView: View {
                                 onReserve: { reserveCard(card) }
                             )
                             .cardDeparture(isAnimating: animatingCardId == card.id)
-                            .cardArrival(shouldAppear: true)
+                            .cardArrival(shouldShowBadge: newlyDrawnCardIds.contains(card.id))
                             .onTapGesture {
                                 selectedCard = card
                             }
@@ -429,7 +433,7 @@ struct SimpleGameView: View {
                                 onReserve: { reserveCard(card) }
                             )
                             .cardDeparture(isAnimating: animatingCardId == card.id)
-                            .cardArrival(shouldAppear: true)
+                            .cardArrival(shouldShowBadge: newlyDrawnCardIds.contains(card.id))
                             .onTapGesture {
                                 selectedCard = card
                             }
@@ -928,7 +932,13 @@ struct SimpleGameView: View {
         if card.tier == .one {
             visibleCardsTier1.removeAll { $0.id == card.id }
             if !deckTier1.isEmpty {
-                visibleCardsTier1.append(deckTier1.removeFirst())
+                let newCard = deckTier1.removeFirst()
+                visibleCardsTier1.append(newCard)
+                newlyDrawnCardIds.insert(newCard.id)
+                // Remove from set after badge animation completes
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    newlyDrawnCardIds.remove(newCard.id)
+                }
             }
             while visibleCardsTier1.count > 4 {
                 visibleCardsTier1.removeFirst()
@@ -936,7 +946,12 @@ struct SimpleGameView: View {
         } else if card.tier == .two {
             visibleCardsTier2.removeAll { $0.id == card.id }
             if !deckTier2.isEmpty {
-                visibleCardsTier2.append(deckTier2.removeFirst())
+                let newCard = deckTier2.removeFirst()
+                visibleCardsTier2.append(newCard)
+                newlyDrawnCardIds.insert(newCard.id)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    newlyDrawnCardIds.remove(newCard.id)
+                }
             }
             while visibleCardsTier2.count > 4 {
                 visibleCardsTier2.removeFirst()
@@ -944,7 +959,12 @@ struct SimpleGameView: View {
         } else {
             visibleCardsTier3.removeAll { $0.id == card.id }
             if !deckTier3.isEmpty {
-                visibleCardsTier3.append(deckTier3.removeFirst())
+                let newCard = deckTier3.removeFirst()
+                visibleCardsTier3.append(newCard)
+                newlyDrawnCardIds.insert(newCard.id)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    newlyDrawnCardIds.remove(newCard.id)
+                }
             }
             while visibleCardsTier3.count > 4 {
                 visibleCardsTier3.removeFirst()
