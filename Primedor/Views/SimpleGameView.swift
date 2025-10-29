@@ -36,13 +36,25 @@ struct SimpleGameView: View {
     // Track newly drawn cards (for NEW badge)
     @State private var newlyDrawnCardIds: Set<UUID> = []
     
+    // Highlight player when they buy/reserve
+    @State private var highlightedPlayerId: UUID?
+    
     // Frame tracking for card journey animation
     @State private var cardGridFrame: CGRect = .zero
     @State private var playerAreaFrame: CGRect = .zero
     @State private var animatingCardStartFrame: CGRect = .zero
     
-    // NEW: Track tokens pending finalization until end of turn
+    // Track tokens pending finalization until end of turn
     @State private var pendingTokensByPlayer: [UUID: [TokenType: Int]] = [:]
+    
+    // NEW: Card reveal animation
+    @State private var revealingCard: Card? = nil
+    
+    // NEW: Track card action (bought or reserved)
+    @State private var cardAction: CardAction = .bought
+    
+    // Speed manager for AI timing - observe the shared singleton
+    @ObservedObject private var speedManager = GameSpeedManager.shared
     
     /// New initializer that accepts pre-configured players
     init(players: [Player]) {
@@ -75,7 +87,7 @@ struct SimpleGameView: View {
     /// Legacy initializer for backward compatibility (2-4 players with P1 human, rest AI)
     init(playerCount: Int) {
         let validPlayerCount = max(2, min(playerCount, 4))
-        let names = ["Emma", "Abby", "Bob", "Ann"]
+        let names = ["Bob", "Abby", "Emma", "Ann"]
         
         var playerArray: [Player] = []
         for i in 1...validPlayerCount {
@@ -276,6 +288,11 @@ struct SimpleGameView: View {
                     dismiss()
                 }
             }
+            
+            // Card reveal overlay
+            if revealingCard != nil {
+                CardRevealOverlay(revealingCard: $revealingCard, player: currentPlayer, action: cardAction)
+            }
         }
         .navigationBarBackButtonHidden(true)
         .sheet(item: $selectedCard) { card in
@@ -336,7 +353,7 @@ struct SimpleGameView: View {
                 .disabled(deckTier3.isEmpty)
                 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 2) {
                         ForEach(visibleCardsTier3) { card in
                             CompactCardView(
                                 card: card,
@@ -351,6 +368,7 @@ struct SimpleGameView: View {
                             }
                         }
                     }
+                    .padding(.horizontal, 2)
                 }
             }
             .padding(.horizontal, 8)
@@ -380,7 +398,7 @@ struct SimpleGameView: View {
                 .disabled(deckTier2.isEmpty)
                 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 2) {
                         ForEach(visibleCardsTier2) { card in
                             CompactCardView(
                                 card: card,
@@ -388,13 +406,18 @@ struct SimpleGameView: View {
                                 onBuy: { buyCard(card) },
                                 onReserve: { reserveCard(card) }
                             )
-                            .cardDeparture(isAnimating: animatingCardId == card.id)
+                            .cardJourney(
+                                isAnimating: animatingCardId == card.id,
+                                from: cardGridFrame,
+                                to: playerAreaFrame
+                            )
                             .cardArrival(shouldShowBadge: newlyDrawnCardIds.contains(card.id))
                             .onTapGesture {
                                 selectedCard = card
                             }
                         }
                     }
+                    .padding(.horizontal, 2)
                 }
             }
             .padding(.horizontal, 8)
@@ -424,7 +447,7 @@ struct SimpleGameView: View {
                 .disabled(deckTier1.isEmpty)
                 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 2) {
                         ForEach(visibleCardsTier1) { card in
                             CompactCardView(
                                 card: card,
@@ -432,13 +455,18 @@ struct SimpleGameView: View {
                                 onBuy: { buyCard(card) },
                                 onReserve: { reserveCard(card) }
                             )
-                            .cardDeparture(isAnimating: animatingCardId == card.id)
+                            .cardJourney(
+                                isAnimating: animatingCardId == card.id,
+                                from: cardGridFrame,
+                                to: playerAreaFrame
+                            )
                             .cardArrival(shouldShowBadge: newlyDrawnCardIds.contains(card.id))
                             .onTapGesture {
                                 selectedCard = card
                             }
                         }
                     }
+                    .padding(.horizontal, 2)
                 }
             }
             .padding(.horizontal, 8)
@@ -561,6 +589,7 @@ struct SimpleGameView: View {
                 CompactPlayerView(
                     player: player,
                     isCurrent: player.id == currentPlayer?.id,
+                    isFlashing: player.id == highlightedPlayerId,
                     onBuyReserved: { card in
                         if player.id == currentPlayer?.id {
                             buyReservedCard(card)
@@ -773,6 +802,7 @@ struct SimpleGameView: View {
         // Trigger animation for human players
         if !player.isAI {
             animatingCardId = card.id
+            highlightedPlayerId = player.id
         }
         
         claimNobleIfPossible()
@@ -781,14 +811,26 @@ struct SimpleGameView: View {
         errorMessage = ""
         
         // Wait for animation, then replace card
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + speedManager.currentSpeed.cardReplacementDelay) {
             removeAndReplaceCard(card)
-            animatingCardId = nil
             updateTrigger += 1
         }
         
+        // Clear animation state and highlight after animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + speedManager.currentSpeed.animationDelay + 1.0) {
+            animatingCardId = nil
+            highlightedPlayerId = nil
+        }
+        
+        // Show card reveal
+        cardAction = .bought
+        revealingCard = card
+        
         if !player.isAI {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            // Adjust end turn delay based on reveal duration
+            let revealDuration = speedManager.currentSpeed == .slow ? 3.0 :
+                                 speedManager.currentSpeed == .normal ? 2.0 : 1.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + revealDuration + 0.2) {
                 self.endTurn()
             }
         }
@@ -828,8 +870,14 @@ struct SimpleGameView: View {
         errorMessage = ""
         updateTrigger += 1
         
+        // Show card reveal
+        cardAction = .bought
+        revealingCard = card
+        
         if !player.isAI {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            let revealDuration = speedManager.currentSpeed == .slow ? 3.0 :
+                                 speedManager.currentSpeed == .normal ? 2.0 : 1.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + revealDuration + 0.2) {
                 self.endTurn()
             }
         }
@@ -889,6 +937,7 @@ struct SimpleGameView: View {
         // Trigger animation for human players
         if !player.isAI {
             animatingCardId = card.id
+            highlightedPlayerId = player.id
         }
         
         if calculateTotalTokensWithPending(for: player) < 10 {
@@ -903,26 +952,42 @@ struct SimpleGameView: View {
             turnAction = .reservedCard
             
             // Wait for animation, then replace card
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + speedManager.currentSpeed.cardReplacementDelay) {
                 removeAndReplaceCard(card)
-                animatingCardId = nil
                 updateTrigger += 1
+            }
+            
+            // Clear animation state and highlight after animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + speedManager.currentSpeed.animationDelay + 1.0) {
+                animatingCardId = nil
+                highlightedPlayerId = nil
             }
             return
         }
         
         // Wait for animation, then replace card
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + speedManager.currentSpeed.cardReplacementDelay) {
             removeAndReplaceCard(card)
-            animatingCardId = nil
             updateTrigger += 1
         }
+        
+        // Clear animation state and highlight after animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + speedManager.currentSpeed.animationDelay + 1.0) {
+            animatingCardId = nil
+            highlightedPlayerId = nil
+        }
+        
+        // Show card reveal
+        cardAction = .reserved
+        revealingCard = card
         
         turnAction = .reservedCard
         errorMessage = ""
         
         if !player.isAI {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            let revealDuration = speedManager.currentSpeed == .slow ? 3.0 :
+                                 speedManager.currentSpeed == .normal ? 2.0 : 1.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + revealDuration + 0.2) {
                 self.endTurn()
             }
         }
@@ -930,44 +995,41 @@ struct SimpleGameView: View {
     
     func removeAndReplaceCard(_ card: Card) {
         if card.tier == .one {
-            visibleCardsTier1.removeAll { $0.id == card.id }
-            if !deckTier1.isEmpty {
-                let newCard = deckTier1.removeFirst()
-                visibleCardsTier1.append(newCard)
-                newlyDrawnCardIds.insert(newCard.id)
-                // Remove from set after badge animation completes
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    newlyDrawnCardIds.remove(newCard.id)
+            if let index = visibleCardsTier1.firstIndex(where: { $0.id == card.id }) {
+                visibleCardsTier1.remove(at: index)
+                if !deckTier1.isEmpty {
+                    let newCard = deckTier1.removeFirst()
+                    visibleCardsTier1.insert(newCard, at: index)
+                    newlyDrawnCardIds.insert(newCard.id)
+                    // Remove from set after badge animation completes
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        newlyDrawnCardIds.remove(newCard.id)
+                    }
                 }
-            }
-            while visibleCardsTier1.count > 4 {
-                visibleCardsTier1.removeFirst()
             }
         } else if card.tier == .two {
-            visibleCardsTier2.removeAll { $0.id == card.id }
-            if !deckTier2.isEmpty {
-                let newCard = deckTier2.removeFirst()
-                visibleCardsTier2.append(newCard)
-                newlyDrawnCardIds.insert(newCard.id)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    newlyDrawnCardIds.remove(newCard.id)
+            if let index = visibleCardsTier2.firstIndex(where: { $0.id == card.id }) {
+                visibleCardsTier2.remove(at: index)
+                if !deckTier2.isEmpty {
+                    let newCard = deckTier2.removeFirst()
+                    visibleCardsTier2.insert(newCard, at: index)
+                    newlyDrawnCardIds.insert(newCard.id)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        newlyDrawnCardIds.remove(newCard.id)
+                    }
                 }
-            }
-            while visibleCardsTier2.count > 4 {
-                visibleCardsTier2.removeFirst()
             }
         } else {
-            visibleCardsTier3.removeAll { $0.id == card.id }
-            if !deckTier3.isEmpty {
-                let newCard = deckTier3.removeFirst()
-                visibleCardsTier3.append(newCard)
-                newlyDrawnCardIds.insert(newCard.id)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    newlyDrawnCardIds.remove(newCard.id)
+            if let index = visibleCardsTier3.firstIndex(where: { $0.id == card.id }) {
+                visibleCardsTier3.remove(at: index)
+                if !deckTier3.isEmpty {
+                    let newCard = deckTier3.removeFirst()
+                    visibleCardsTier3.insert(newCard, at: index)
+                    newlyDrawnCardIds.insert(newCard.id)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        newlyDrawnCardIds.remove(newCard.id)
+                    }
                 }
-            }
-            while visibleCardsTier3.count > 4 {
-                visibleCardsTier3.removeFirst()
             }
         }
     }
@@ -1033,7 +1095,7 @@ struct SimpleGameView: View {
         updateTrigger += 1
         
         if let nextPlayer = currentPlayer, nextPlayer.isAI {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + speedManager.currentSpeed.turnEndDelay) {
                 self.executeAITurn()
             }
         }
@@ -1066,7 +1128,7 @@ struct SimpleGameView: View {
             tokensCollectedThisTurn: tokensCollectedThisTurn
         )
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + speedManager.currentSpeed.aiThinkingDelay) {
             switch aiAction {
             case .collectToken(let type):
                 self.errorMessage = ""
@@ -1077,18 +1139,18 @@ struct SimpleGameView: View {
                 }
                 
                 if self.errorMessage.isEmpty {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + self.speedManager.currentSpeed.aiActionDelay) {
                         self.executeAITurn()
                     }
                 } else {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + self.speedManager.currentSpeed.aiActionDelay) {
                         self.endTurn()
                     }
                 }
                 
             case .buyCard(let card):
                 self.buyCard(card)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + self.speedManager.currentSpeed.aiActionDelay) {
                     self.endTurn()
                 }
                 
@@ -1099,7 +1161,7 @@ struct SimpleGameView: View {
                     self.performAIDiscard()
                 }
                 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + self.speedManager.currentSpeed.aiActionDelay) {
                     self.endTurn()
                 }
                 

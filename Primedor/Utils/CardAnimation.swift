@@ -1,103 +1,117 @@
 import SwiftUI
 
-// MARK: - Card Departure Animation (Pulse → Shrink → Disappear)
-
-struct CardDepartureModifier: ViewModifier {
-    let isAnimating: Bool
-    
-    @State private var scale: CGFloat = 1.0
-    @State private var opacity: Double = 1.0
-    
-    func body(content: Content) -> some View {
-        content
-            .scaleEffect(scale)
-            .opacity(opacity)
-            .onChange(of: isAnimating) { oldValue, newValue in
-                if newValue {
-                    startAnimation()
-                }
-            }
-    }
-    
-    private func startAnimation() {
-        withAnimation(.easeOut(duration: 0.3)) {
-            scale = 1.3
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            withAnimation(.easeIn(duration: 0.4)) {
-                scale = 0
-                opacity = 0
-            }
-        }
-    }
-}
-
+/// Card animation modifiers that respect game speed
 extension View {
+    
+    /// Animation when card is leaving the grid (bought/reserved)
     func cardDeparture(isAnimating: Bool) -> some View {
         modifier(CardDepartureModifier(isAnimating: isAnimating))
     }
+    
+    /// Animation when card arrives in player collection
+    func cardArrival(shouldShowBadge: Bool) -> some View {
+        modifier(CardArrivalModifier(shouldShowBadge: shouldShowBadge))
+    }
+    
+    /// Journey animation from grid to player area
+    func cardJourney(isAnimating: Bool, from: CGRect, to: CGRect) -> some View {
+        modifier(CardJourneyModifier(isAnimating: isAnimating, from: from, to: to))
+    }
 }
 
-// MARK: - Card Arrival Animation (Bounce + NEW Badge)
+// MARK: - Card Departure Modifier
+struct CardDepartureModifier: ViewModifier {
+    let isAnimating: Bool
+    @ObservedObject private var speedManager = GameSpeedManager.shared
+    
+    var animationDuration: Double {
+        switch speedManager.currentSpeed {
+        case .slow:
+            return 0.8
+        case .normal:
+            return 0.5
+        case .fast:
+            return 0.2
+        }
+    }
+    
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isAnimating ? 0.5 : 1.0)
+            .opacity(isAnimating ? 0.3 : 1.0)
+            .animation(.easeInOut(duration: animationDuration), value: isAnimating)
+    }
+}
 
+// MARK: - Card Arrival Modifier
 struct CardArrivalModifier: ViewModifier {
     let shouldShowBadge: Bool
-    @State private var scale: CGFloat = 1.0
-    @State private var opacity: Double = 1.0
-    @State private var showBadge: Bool = false
+    @ObservedObject private var speedManager = GameSpeedManager.shared
+    
+    var badgeDuration: Double {
+        switch speedManager.currentSpeed {
+        case .slow:
+            return 1.5
+        case .normal:
+            return 1.0
+        case .fast:
+            return 0.5
+        }
+    }
     
     func body(content: Content) -> some View {
         ZStack(alignment: .topTrailing) {
             content
-                .scaleEffect(scale)
-                .opacity(opacity)
-                .onAppear {
-                    scale = 1.0
-                    opacity = 1.0
-                }
             
-            if showBadge {
+            if shouldShowBadge {
                 Text("NEW")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: 8, weight: .bold))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 4)
                     .padding(.vertical, 2)
                     .background(Color.green)
-                    .cornerRadius(4)
-                    .offset(x: -4, y: 4)
-                    .transition(.scale)
-            }
-        }
-        .onChange(of: shouldShowBadge) { oldValue, newValue in
-            if newValue {
-                startBounceAnimation()
-            }
-        }
-    }
-    
-    private func startBounceAnimation() {
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.65)) {
-            scale = 1.15
-            opacity = 1.0
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            withAnimation(.easeIn(duration: 0.2)) {
-                showBadge = true
-            }
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            withAnimation(.easeOut(duration: 0.3)) {
-                showBadge = false
+                    .cornerRadius(3)
+                    .offset(x: 4, y: -4)
+                    .transition(.scale.combined(with: .opacity))
+                    .animation(.easeInOut(duration: badgeDuration), value: shouldShowBadge)
             }
         }
     }
 }
 
-extension View {
-    func cardArrival(shouldShowBadge: Bool) -> some View {
-        modifier(CardArrivalModifier(shouldShowBadge: shouldShowBadge))
+// MARK: - Card Journey Modifier
+struct CardJourneyModifier: ViewModifier {
+    let isAnimating: Bool
+    let from: CGRect
+    let to: CGRect
+    @ObservedObject private var speedManager = GameSpeedManager.shared
+    
+    var journeyDuration: Double {
+        switch speedManager.currentSpeed {
+        case .slow:
+            return 1.0
+        case .normal:
+            return 0.75
+        case .fast:
+            return 0.5
+        }
+    }
+    
+    var offsetX: CGFloat {
+        guard isAnimating else { return 0 }
+        return from.midX - to.midX
+    }
+    
+    var offsetY: CGFloat {
+        guard isAnimating else { return 0 }
+        return from.midY - to.midY
+    }
+    
+    func body(content: Content) -> some View {
+        content
+            .offset(x: offsetX, y: offsetY)
+            .scaleEffect(isAnimating ? 0.5 : 1.0)
+            .opacity(isAnimating ? 0.5 : 1.0)
+            .animation(.easeInOut(duration: journeyDuration), value: isAnimating)
     }
 }

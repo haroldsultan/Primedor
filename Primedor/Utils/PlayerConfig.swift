@@ -17,7 +17,7 @@ class PlayerConfigurationManager: ObservableObject {
     
     func resetToDefault(playerCount: Int) {
         let validCount = max(2, min(playerCount, 4))
-        let defaultNames = ["Bob", "Abby", "Emma", "Ann"]
+        let defaultNames = ["Emma", "Abby", "Bob", "Ann"]
         
         playerConfigs = Array(0..<validCount).map { index in
             return PlayerConfig(isAI: false, name: defaultNames[index])

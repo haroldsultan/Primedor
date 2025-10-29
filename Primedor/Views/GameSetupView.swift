@@ -3,6 +3,7 @@ import SwiftUI
 struct GameSetupView: View {
     @StateObject private var playerConfig = PlayerConfigurationManager(playerCount: 2)
     @StateObject private var gameSettings = GameSettings.shared
+    @StateObject private var speedManager = GameSpeedManager.shared
     @State private var showGame: Bool = false
     @State private var gameID = UUID()
     @State private var playerCount: Int = 2
@@ -61,6 +62,21 @@ struct GameSetupView: View {
                         }
                     }
                     .padding(8)
+                }
+                .padding(.horizontal)
+                
+                // Game Speed selector
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Game Speed")
+                        .font(.headline)
+                        .font(.system(size: 14))
+                    
+                    Picker("Speed", selection: $speedManager.currentSpeed) {
+                        Text("Slow").tag(GameSpeed.slow)
+                        Text("Normal").tag(GameSpeed.normal)
+                        Text("Fast").tag(GameSpeed.fast)
+                    }
+                    .pickerStyle(.segmented)
                 }
                 .padding(.horizontal)
                 

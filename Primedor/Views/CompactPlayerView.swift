@@ -3,6 +3,7 @@ import SwiftUI
 struct CompactPlayerView: View {
     let player: Player
     let isCurrent: Bool
+    let isFlashing: Bool
     let onBuyReserved: (Card) -> Void
     
     // Helper function for color (Keep this the same)
@@ -23,15 +24,19 @@ struct CompactPlayerView: View {
             // MARK: - Line 1: Name, Resources, Nobles, Points
             HStack(spacing: 8) {
                 
-                // 1. Player Name (SMALLER FONT)
+                // 1. Player Name (SMALLER FONT) - LARGE GREEN HIGHLIGHT WHEN BUYING
                 Text(player.name)
-                    .font(.caption) // Reduced font size significantly
-                    .fontWeight(isCurrent ? .bold : .medium)
-                    .foregroundColor(isCurrent ? .primary : .secondary)
-                    .frame(width: 40, alignment: .leading) // Reduced frame width
+                    .font(.system(.caption, design: .default).weight(.heavy))
+                    .foregroundColor(isFlashing ? .white : (isCurrent ? .primary : .secondary))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(isFlashing ? Color.green : Color.clear)
+                    .cornerRadius(6)
+                    .scaleEffect(isFlashing ? 1.1 : 1.0)
+                    .animation(.easeInOut(duration: 0.2), value: isFlashing)
                 
                 // 2. Combined Tokens (Circle) and Permanent Bonuses (Rectangle)
-                // (Resource section remains color-grouped for clarity)
                 HStack(spacing: 4) {
                     ForEach(TokenType.allCases, id: \.self) { type in
                         let tokenCount = player.tokenCount(of: type)
