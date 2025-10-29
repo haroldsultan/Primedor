@@ -29,6 +29,9 @@ struct SimpleGameView: View {
     @State private var cardToReserve: Card?
     @State private var reserveWarningMessage = ""
     
+    // NEW: Track tokens pending finalization until end of turn
+    @State private var pendingTokensByPlayer: [UUID: [TokenType: Int]] = [:]
+    
     /// New initializer that accepts pre-configured players
     init(players: [Player]) {
         let validPlayers = players.isEmpty ? [Player(name: "Player 1", isAI: false)] : players
@@ -50,6 +53,11 @@ struct SimpleGameView: View {
         let allNobles = Mathematician.allMathematicians.shuffled()
         let nobleCount = min(validPlayers.count + 1, allNobles.count)
         self._availableNobles = State(initialValue: Array(allNobles.prefix(nobleCount)))
+        
+        // Initialize pending tokens for all players
+        self._pendingTokensByPlayer = State(initialValue: validPlayers.reduce(into: [:]) { dict, player in
+            dict[player.id] = [:]
+        })
     }
     
     /// Legacy initializer for backward compatibility (2-4 players with P1 human, rest AI)
@@ -105,6 +113,13 @@ struct SimpleGameView: View {
         return player.tokens.values.reduce(0) { total, tokensArray in
             total + tokensArray.count
         }
+    }
+    
+    // NEW: Calculate total tokens including pending tokens
+    func calculateTotalTokensWithPending(for player: Player) -> Int {
+        let currentTokens = calculateTotalTokens(for: player)
+        let pendingTokens = pendingTokensByPlayer[player.id]?.values.reduce(0, +) ?? 0
+        return currentTokens + pendingTokens
     }
 
     var body: some View {
@@ -409,12 +424,16 @@ struct SimpleGameView: View {
         }
         
         if turnAction != .none {
-            errorMessage = "Already took action this turn"
+            if !player.isAI {
+                errorMessage = "Already took action this turn"
+            }
             return
         }
         
         if player.reservedCards.count >= 3 {
-            errorMessage = "Can only reserve 3 cards"
+            if !player.isAI {
+                errorMessage = "Can only reserve 3 cards"
+            }
             return
         }
         
@@ -429,23 +448,28 @@ struct SimpleGameView: View {
         }
         
         guard let cardToReserve = card else {
-            errorMessage = "No cards left in that deck"
+            if !player.isAI {
+                errorMessage = "No cards left in that deck"
+            }
             return
         }
         
         // Reserve the card
         player.reserveCard(cardToReserve)
         
-        // Take a gold token if available AND if under token limit
-        if calculateTotalTokens(for: player) < 10 {
-            if let goldToken = tokenSupply.take(.perfect, count: 1) {
-                player.addTokens(goldToken)
+        // Add gold token to PENDING (not directly to player)
+        if calculateTotalTokensWithPending(for: player) < 10 {
+            if tokenSupply.tokens[.perfect]?.count ?? 0 > 0 {
+                pendingTokensByPlayer[player.id, default: [.perfect: 0]][.perfect, default: 0] += 1
+                tokenSupply.take(.perfect, count: 1) // Remove from supply
             }
         }
         
         // Check if over limit after reserving
-        if calculateTotalTokens(for: player) > 10 {
-            errorMessage = "You are over 10 tokens. You must discard tokens."
+        if calculateTotalTokensWithPending(for: player) > 10 {
+            if !player.isAI {
+                errorMessage = "You are over 10 tokens. You must discard tokens."
+            }
             turnAction = .reservedCard
             updateTrigger += 1
             return  // Don't auto-end if they need to discard
@@ -552,7 +576,9 @@ struct SimpleGameView: View {
     
     func collectToken(_ type: TokenType) {
         guard let player = currentPlayer else {
-            errorMessage = "Invalid player state"
+            if currentPlayer == nil {
+                errorMessage = "Invalid player state"
+            }
             return
         }
         
@@ -567,20 +593,25 @@ struct SimpleGameView: View {
         )
         
         if !check.canCollect {
-            errorMessage = check.reason
+            if !player.isAI {
+                errorMessage = check.reason
+            }
             return
         }
         
         if let tokens = tokenSupply.take(type, count: 1) {
-            player.addTokens(tokens)
+            // Add to PENDING instead of directly to player
+            pendingTokensByPlayer[player.id, default: [:]][type, default: 0] += 1
             tokensCollectedThisTurn += 1
             collectedTypesCount[type, default: 0] += 1
             turnAction = .collectingTokens
             errorMessage = ""
             updateTrigger += 1
             
-            if calculateTotalTokens(for: player) > 10 {
-                errorMessage = "You have over 10 tokens. Tap one of your tokens to discard it."
+            if calculateTotalTokensWithPending(for: player) > 10 {
+                if !player.isAI {
+                    errorMessage = "You have over 10 tokens. Tap one of your tokens to discard it."
+                }
             }
         }
     }
@@ -593,9 +624,15 @@ struct SimpleGameView: View {
         let isCollectedThisTurn = (collectedTypesCount[type] ?? 0) > 0
 
         if turnAction == .collectingTokens && isCollectedThisTurn {
-            // Case 1: Undo a token collection
-            let returned = player.removeTokens(type, count: 1)
-            tokenSupply.returnTokens(returned)
+            // Case 1: Undo a token collection - return from pending back to supply
+            if let pendingCount = pendingTokensByPlayer[player.id]?[type], pendingCount > 0 {
+                pendingTokensByPlayer[player.id]?[type] = pendingCount - 1
+                if pendingTokensByPlayer[player.id]?[type] == 0 {
+                    pendingTokensByPlayer[player.id]?.removeValue(forKey: type)
+                }
+                // Return one token of this type back to supply
+                tokenSupply.returnTokens([Token(type: type)])
+            }
             
             tokensCollectedThisTurn -= 1
             collectedTypesCount[type]! -= 1
@@ -607,13 +644,13 @@ struct SimpleGameView: View {
                 turnAction = .none
             }
             errorMessage = ""
-        } else if calculateTotalTokens(for: player) > 10 {
+        } else if calculateTotalTokensWithPending(for: player) > 10 {
             // Case 2: Discarding due to 10-token limit
             if player.tokenCount(of: type) > 0 {
                 let returned = player.removeTokens(type, count: 1)
                 tokenSupply.returnTokens(returned)
                 
-                errorMessage = calculateTotalTokens(for: player) > 10
+                errorMessage = calculateTotalTokensWithPending(for: player) > 10
                     ? "Still over 10 tokens. Discard another."
                     : ""
             } else {
@@ -683,12 +720,16 @@ struct SimpleGameView: View {
         
         let check = GameRules.canBuyCard(turnAction: turnAction)
         if !check.canBuy {
-            errorMessage = check.reason
+            if !player.isAI {
+                errorMessage = check.reason
+            }
             return
         }
         
         if !GameRules.canAffordCard(player: player, card: card) {
-            errorMessage = "Can't afford this card"
+            if !player.isAI {
+                errorMessage = "Can't afford this card"
+            }
             return
         }
         
@@ -720,12 +761,16 @@ struct SimpleGameView: View {
         
         let check = GameRules.canBuyCard(turnAction: turnAction)
         if !check.canBuy {
-            errorMessage = check.reason
+            if !player.isAI {
+                errorMessage = check.reason
+            }
             return
         }
         
         if !GameRules.canAffordCard(player: player, card: card) {
-            errorMessage = "Can't afford this card"
+            if !player.isAI {
+                errorMessage = "Can't afford this card"
+            }
             return
         }
         
@@ -757,28 +802,37 @@ struct SimpleGameView: View {
         }
         
         if turnAction != .none {
-            errorMessage = "Already took action this turn"
+            if !player.isAI {
+                errorMessage = "Already took action this turn"
+            }
             return
         }
         
         if player.reservedCards.count >= 3 {
-            errorMessage = "Can only reserve 3 cards"
+            if !player.isAI {
+                errorMessage = "Can only reserve 3 cards"
+            }
             return
         }
         
         // Check if we can get gold token
         let goldAvailable = tokenSupply.tokens[.perfect]?.count ?? 0 > 0
-        let canGetGold = calculateTotalTokens(for: player) < 10 && goldAvailable
+        let canGetGold = calculateTotalTokensWithPending(for: player) < 10 && goldAvailable
         
-        // If no gold, show confirmation dialog
+        // If no gold, show confirmation dialog (ONLY for human players)
         if !canGetGold {
-            cardToReserve = card
-            if calculateTotalTokens(for: player) >= 10 {
-                reserveWarningMessage = "You're at the token limit (10). You won't receive a gold token. Continue?"
+            if !player.isAI {
+                cardToReserve = card
+                if calculateTotalTokensWithPending(for: player) >= 10 {
+                    reserveWarningMessage = "You're at the token limit (10). You won't receive a gold token. Continue?"
+                } else {
+                    reserveWarningMessage = "No gold tokens available. You won't receive a gold token. Continue?"
+                }
+                showReserveWarning = true
             } else {
-                reserveWarningMessage = "No gold tokens available. You won't receive a gold token. Continue?"
+                // AI just reserves without warning
+                performReserve(card)
             }
-            showReserveWarning = true
             return
         }
         
@@ -794,15 +848,16 @@ struct SimpleGameView: View {
         // Reserve the card
         player.reserveCard(card)
         
-        // Take a gold token if available AND if under token limit
-        if calculateTotalTokens(for: player) < 10 {
-            if let goldToken = tokenSupply.take(.perfect, count: 1) {
-                player.addTokens(goldToken)
+        // Add gold token to PENDING (not directly to player)
+        if calculateTotalTokensWithPending(for: player) < 10 {
+            if tokenSupply.tokens[.perfect]?.count ?? 0 > 0 {
+                pendingTokensByPlayer[player.id, default: [:]][.perfect, default: 0] += 1
+                tokenSupply.take(.perfect, count: 1) // Remove from supply
             }
         }
         
         // Check if over limit after reserving
-        if calculateTotalTokens(for: player) > 10 {
+        if calculateTotalTokensWithPending(for: player) > 10 {
             errorMessage = "You are over 10 tokens. You must discard tokens."
             turnAction = .reservedCard
             updateTrigger += 1
@@ -863,17 +918,34 @@ struct SimpleGameView: View {
         
         let check = GameRules.canEndTurn(player: player)
         
-        if calculateTotalTokens(for: player) > 10 {
-             errorMessage = "You must discard tokens down to 10 before ending your turn."
+        if calculateTotalTokensWithPending(for: player) > 10 {
+            if !player.isAI {
+                errorMessage = "You must discard tokens down to 10 before ending your turn."
+            }
              return
         }
         
         if !check.canEnd {
-            errorMessage = check.reason
+            if !player.isAI {
+                errorMessage = check.reason
+            }
             return
         }
         
-        // Check for winner (after last player's turn)
+        // FINALIZE: Transfer all pending tokens to the player NOW
+        if let pendingTokens = pendingTokensByPlayer[player.id] {
+            for (type, count) in pendingTokens {
+                for _ in 0..<count {
+                    if let tokens = tokenSupply.tokens[type], tokens.count > 0 {
+                        let token = tokens.first!
+                        player.addTokens([token])
+                    }
+                }
+            }
+            pendingTokensByPlayer[player.id] = [:]
+        }
+        
+        // Check for winner AFTER tokens are finalized
         if let gameWinner = WinCondition.checkWinner(players: players, currentPlayerIndex: currentPlayerIndex) {
             showWinner = true
             winner = gameWinner
@@ -933,7 +1005,7 @@ struct SimpleGameView: View {
                 self.errorMessage = ""
                 self.collectToken(type)
                 
-                if let player = self.currentPlayer, self.calculateTotalTokens(for: player) > 10 {
+                if let player = self.currentPlayer, self.calculateTotalTokensWithPending(for: player) > 10 {
                     self.performAIDiscard()
                 }
                 
@@ -960,7 +1032,7 @@ struct SimpleGameView: View {
             case .reserveCard(let card):
                 self.reserveCard(card)
 
-                if let player = self.currentPlayer, self.calculateTotalTokens(for: player) > 10 {
+                if let player = self.currentPlayer, self.calculateTotalTokensWithPending(for: player) > 10 {
                     self.performAIDiscard()
                 }
                 
@@ -982,7 +1054,7 @@ struct SimpleGameView: View {
             return
         }
         
-        while calculateTotalTokens(for: player) > 10 {
+        while calculateTotalTokensWithPending(for: player) > 10 {
             let removableTokens = player.tokens.filter { $0.value.count > 0 }
             
             guard let typeToDiscard = removableTokens
@@ -1016,15 +1088,21 @@ struct SimpleGameView: View {
         
         // Only allow returning tokens that were collected this turn
         guard collectedTypesCount[tokenType, default: 0] > 0 else {
-            errorMessage = "No tokens of that type to return"
+            if !player.isAI {
+                errorMessage = "No tokens of that type to return"
+            }
             return
         }
         
-        // Remove one token from player
-        let returned = player.removeTokens(tokenType, count: 1)
-        
-        // Return to supply
-        tokenSupply.returnTokens(returned)
+        // Remove from PENDING, not from player
+        if let pendingCount = pendingTokensByPlayer[player.id]?[tokenType], pendingCount > 0 {
+            pendingTokensByPlayer[player.id]?[tokenType] = pendingCount - 1
+            if pendingTokensByPlayer[player.id]?[tokenType] == 0 {
+                pendingTokensByPlayer[player.id]?.removeValue(forKey: tokenType)
+            }
+            // Return one token of this type back to supply
+            tokenSupply.returnTokens([Token(type: tokenType)])
+        }
         
         // Update tracking
         if var count = collectedTypesCount[tokenType] {
