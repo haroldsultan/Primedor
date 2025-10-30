@@ -98,7 +98,7 @@ struct CompactPlayerView: View {
                 Text("\(player.victoryPoints)p")
                     .font(.headline)
                     .fontWeight(.heavy)
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
             }
             
             // MARK: - Reserved Card Detail (Always visible and vertical)

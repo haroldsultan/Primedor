@@ -19,6 +19,13 @@ struct GameSetupView: View {
                     
                     Spacer()
                     
+                    if let humanPlayer = playerConfig.playerConfigs.first(where: { !$0.isAI }) {
+                        NavigationLink(destination: StatsView(playerName: humanPlayer.name)) {
+                            Image(systemName: "chart.bar.fill")
+                                .font(.title2)
+                        }
+                    }
+                    
                     Button(action: { showAudioSettings = true }) {
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.title2)

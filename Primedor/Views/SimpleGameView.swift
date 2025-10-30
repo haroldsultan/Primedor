@@ -1072,6 +1072,20 @@ struct SimpleGameView: View {
             showWinner = true
             winner = gameWinner
             
+            // Record stats for human player only
+            for player in players {
+                if !player.isAI {
+                    let won = player.id == gameWinner.id
+                    let finalScore = player.victoryPoints
+                    StatsManager.shared.recordGame(
+                        playerName: player.name,
+                        playerCount: playerCount,
+                        won: won,
+                        finalScore: finalScore
+                    )
+                }
+            }
+            
             // Play win sound
             SoundManager.shared.playGameWinSound()
             

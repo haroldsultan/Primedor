@@ -76,7 +76,7 @@ struct CompactCardView: View {
             .padding(4)
         }
         .frame(width: 80, height: 75)
-        .background(canAfford ? Color.green.opacity(0.1) : Color.white)
+        .background(canAfford ? Color.green.opacity(0.1) : Color(UIColor.systemBackground))
         .cornerRadius(4)
         .overlay(
             RoundedRectangle(cornerRadius: 4)

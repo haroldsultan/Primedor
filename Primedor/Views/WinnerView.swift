@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct WinnerView: View {
     let winner: Player
@@ -66,7 +67,7 @@ struct WinnerView: View {
                 }
             }
             .padding()
-            .background(Color.white)
+            .background(Color(UIColor.systemBackground))
             .cornerRadius(16)
             .shadow(radius: 10)
             .padding(40)

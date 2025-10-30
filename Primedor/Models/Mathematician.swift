@@ -268,7 +268,7 @@ struct RealCardDatabase {
             Card(tier: .two, name: "Catalan's Conjecture", cost: [.odd: 6], bonus: .odd, points: 3),
             
             Card(tier: .three, name: "Prime Number Theorem", cost: [.square:3, .sequence: 5, .prime:3, .even: 3], bonus: .odd, points: 3),
-            Card(tier: .three, name: "Landau's Problem", cost: [.even: 6], bonus: .odd, points: 4),
+            Card(tier: .three, name: "Landau's Problem", cost: [.even: 6, .sequence: 3, .odd: 3], bonus: .odd, points: 4),
             Card(tier: .three, name: "Odd Harmonics", cost: [.even: 7], bonus: .odd, points: 4),
             Card(tier: .three, name: "Twin Conjecture", cost: [.even: 7, .odd: 3], bonus: .odd, points: 5),
         ]
@@ -277,7 +277,7 @@ struct RealCardDatabase {
     static func blueCards() -> [Card] {
         return [
             Card(tier: .one, name: "Divisible by Two", cost: [.square: 2, .sequence: 1], bonus: .even, points: 0),
-            Card(tier: .one, name: "Euler's Identity", cost: [.square: 1, .sequence: 1, .prime: 2], bonus: .even, points: 0),
+            Card(tier: .one, name: "Euler's Identity", cost: [.square: 1, .sequence: 1, .prime: 2, .odd: 1], bonus: .even, points: 0),
             Card(tier: .one, name: "Even Square Pairs", cost: [.square: 1, .sequence: 1, .prime: 1, .odd: 1], bonus: .even, points: 0),
             Card(tier: .one, name: "Power of Two", cost: [.prime: 1, .even: 1, .odd: 3], bonus: .even, points: 0),
             Card(tier: .one, name: "Binary Bit", cost: [.square: 3], bonus: .even, points: 0),

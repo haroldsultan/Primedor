@@ -46,9 +46,6 @@ struct CardDetailView: View {
                     Divider()
                     
                     VStack(spacing: 8) {
-                        Text("Description")
-                            .font(.headline)
-                        
                         Text(CardDescription.description(for: card.name))
                             .font(.body)
                             .italic()
@@ -109,7 +106,7 @@ struct CardDetailView: View {
                 .padding(.bottom, 20)
             }
         }
-        .background(Color.white)
+        .background(Color(UIColor.systemBackground))
         .cornerRadius(20)
         .shadow(radius: 10)
     }
@@ -184,15 +181,9 @@ struct NobleDetailView: View {
                             .font(.largeTitle)
                             .fontWeight(.heavy)
                             .foregroundColor(.primary)
-                        
-                        Text("Illustrious Mathematician")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
                     }
                     
                     VStack(spacing: 8) {
-                        Text("Description")
-                            .font(.headline)
                         
                         Text(CardDescription.description(for: noble.name))
                             .font(.body)
@@ -204,7 +195,7 @@ struct NobleDetailView: View {
                     .padding(.horizontal)
                     
                     VStack(spacing: 5) {
-                        Text("Claim Value")
+                        Text("Victory Points")
                             .font(.title3)
                             .foregroundColor(.secondary)
                         
@@ -232,7 +223,7 @@ struct NobleDetailView: View {
                         HStack(spacing: 20) {
                             ForEach(noble.requirements.sorted(by: { $0.key.rawValue < $1.key.rawValue }), id: \.key) { type, required in
                                 VStack {
-                                    Circle()
+                                    RoundedRectangle(cornerRadius: 8)
                                         .fill(colorFor(type))
                                         .frame(width: 55, height: 55)
                                         .shadow(radius: 2)
@@ -255,7 +246,7 @@ struct NobleDetailView: View {
                 .padding(.bottom, 20)
             }
         }
-        .background(Color.white)
+        .background(Color(UIColor.systemBackground))
         .cornerRadius(20)
         .shadow(radius: 10)
     }
