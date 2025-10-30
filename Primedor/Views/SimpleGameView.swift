@@ -29,6 +29,8 @@ struct SimpleGameView: View {
     @State private var showReserveWarning = false
     @State private var cardToReserve: Card?
     @State private var reserveWarningMessage = ""
+    @State private var revealingPlayer: Player?
+
     
     // Animation state
     @State private var animatingCardId: UUID?
@@ -291,7 +293,7 @@ struct SimpleGameView: View {
             
             // Card reveal overlay
             if revealingCard != nil {
-                CardRevealOverlay(revealingCard: $revealingCard, player: currentPlayer, action: cardAction)
+                CardRevealOverlay(revealingCard: $revealingCard, player: revealingPlayer, action: cardAction)
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -825,6 +827,7 @@ struct SimpleGameView: View {
         // Show card reveal
         cardAction = .bought
         revealingCard = card
+        revealingPlayer = player
         
         if !player.isAI {
             // Adjust end turn delay based on reveal duration
@@ -980,6 +983,7 @@ struct SimpleGameView: View {
         // Show card reveal
         cardAction = .reserved
         revealingCard = card
+        revealingPlayer = player
         
         turnAction = .reservedCard
         errorMessage = ""
