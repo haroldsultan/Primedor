@@ -6,6 +6,11 @@ struct TurnTokensView: View {
     
     var body: some View {
         HStack(spacing: 4) {
+            Text("This Turn:")
+                .font(.system(size: 10))
+                .fontWeight(.semibold)
+                .foregroundColor(.secondary)
+            
             ForEach(Array(collectedTypes.keys.sorted(by: { $0.rawValue < $1.rawValue })), id: \.self) { type in
                 if let count = collectedTypes[type], count > 0 {
                     Button {
@@ -28,10 +33,12 @@ struct TurnTokensView: View {
             }
             
             if collectedTypes.isEmpty {
-                Text("none")
+                Text("No tokens collected")
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
             }
+            
+            Spacer()
         }
         .padding(.horizontal)
         .padding(.vertical, 4)

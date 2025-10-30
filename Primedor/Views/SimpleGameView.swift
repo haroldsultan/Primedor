@@ -94,9 +94,9 @@ struct SimpleGameView: View {
         var playerArray: [Player] = []
         for i in 1...validPlayerCount {
             if i == 1 {
-                playerArray.append(Player(name: names[i-1], isAI: false))
+                playerArray.append(Player(name: "\(names[i-1]) (You)", isAI: false))
             } else {
-                playerArray.append(Player(name: names[i-1], isAI: true))
+                playerArray.append(Player(name: "\(names[i-1]) (CPU)", isAI: true))
             }
         }
         
@@ -189,7 +189,7 @@ struct SimpleGameView: View {
                 // Nobles
                 if !availableNobles.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Nobles")
+                        Text("Mathematicians")
                             .font(.caption)
                             .fontWeight(.bold)
                             .padding(.horizontal)
@@ -227,20 +227,6 @@ struct SimpleGameView: View {
                         
                         // This turn info box with token display
                         VStack(alignment: .leading, spacing: 0) {
-                            HStack {
-                                Text(currentPlayer?.name ?? "---")
-                                    .font(.caption)
-                                Spacer()
-                                if !errorMessage.isEmpty {
-                                    Text(errorMessage)
-                                        .font(.system(size: 9))
-                                        .foregroundColor(.red)
-                                        .lineLimit(1)
-                                }
-                            }
-                            .padding(8)
-                            .padding(.bottom, 4)
-                            
                             TurnTokensView(
                                 collectedTypes: collectedTypesCount,
                                 onReturn: { tokenType in
@@ -346,9 +332,11 @@ struct SimpleGameView: View {
                             Text("\(deckTier3.count)")
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.purple)
-                            Text("Res")
-                                .font(.system(size: 8))
-                                .foregroundColor(.purple)
+                            Button("Res") {
+                                reserveFromDeck(tier: .three)
+                            }
+                            .font(.system(size: 8))
+                            .foregroundColor(.purple)
                         }
                     }
                 }
@@ -391,9 +379,11 @@ struct SimpleGameView: View {
                             Text("\(deckTier2.count)")
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.blue)
-                            Text("Res")
-                                .font(.system(size: 8))
-                                .foregroundColor(.blue)
+                            Button("Res") {
+                                reserveFromDeck(tier: .two)
+                            }
+                            .font(.system(size: 8))
+                            .foregroundColor(.blue)
                         }
                     }
                 }
@@ -440,9 +430,11 @@ struct SimpleGameView: View {
                             Text("\(deckTier1.count)")
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.green)
-                            Text("Res")
-                                .font(.system(size: 8))
-                                .foregroundColor(.green)
+                            Button("Res") {
+                                reserveFromDeck(tier: .one)
+                            }
+                            .font(.system(size: 8))
+                            .foregroundColor(.green)
                         }
                     }
                 }
@@ -552,24 +544,28 @@ struct SimpleGameView: View {
     
     var tokenSupplySection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Supply")
-                .font(.caption)
-                .fontWeight(.bold)
-            
-            HStack(spacing: 8) {
-                ForEach(TokenType.allCases, id: \.self) { type in
-                    Button {
-                        collectToken(type)
-                    } label: {
-                        VStack(spacing: 2) {
-                            Circle()
-                                .fill(colorFor(type))
-                                .frame(width: 28, height: 28)
-                                .overlay(
-                                    Text("\(tokenSupply.count(of: type))")
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(.white)
-                                )
+            HStack {
+                Text("Supply")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                
+                Spacer()
+                
+                HStack(spacing: 8) {
+                    ForEach(TokenType.allCases, id: \.self) { type in
+                        Button {
+                            collectToken(type)
+                        } label: {
+                            VStack(spacing: 2) {
+                                Circle()
+                                    .fill(colorFor(type))
+                                    .frame(width: 28, height: 28)
+                                    .overlay(
+                                        Text("\(tokenSupply.count(of: type))")
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(.white)
+                                    )
+                            }
                         }
                     }
                 }
@@ -582,11 +578,7 @@ struct SimpleGameView: View {
     }
     
     var playersSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Players")
-                .font(.caption)
-                .fontWeight(.bold)
-            
+        VStack(alignment: .leading, spacing: 4) {            
             ForEach(players) { player in
                 CompactPlayerView(
                     player: player,
@@ -876,6 +868,7 @@ struct SimpleGameView: View {
         // Show card reveal
         cardAction = .bought
         revealingCard = card
+        revealingPlayer = player
         
         if !player.isAI {
             let revealDuration = speedManager.currentSpeed == .slow ? 3.0 :

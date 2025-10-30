@@ -318,7 +318,7 @@ struct RealCardDatabase {
             Card(tier: .two, name: "Gnomon Accumulation", cost: [.square: 6], bonus: .square, points: 3),
             
             Card(tier: .three, name: "Pythagorean Identity", cost: [.sequence: 3, .prime: 3, .even: 3, .odd: 5], bonus: .square, points: 3),
-            Card(tier: .three, name: "Gauss Circle Problem", cost: [.odd: 7], bonus: .square, points: 4),
+            Card(tier: .three, name: "Gauss Circle Problem", cost: [.prime: 7], bonus: .square, points: 4),
             Card(tier: .three, name: "Lattice Points", cost: [.square: 3, .prime: 6, .odd: 3], bonus: .square, points: 4),
             Card(tier: .three, name: "Sphere Geometry", cost: [.square: 3, .prime: 7], bonus: .square, points: 5),
         ]

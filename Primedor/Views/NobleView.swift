@@ -21,23 +21,13 @@ struct NobleView: View {
             // Requirements - horizontal with numbers inside
             HStack(spacing: 2) {
                 ForEach(mathematician.requirements.sorted(by: { $0.key.rawValue < $1.key.rawValue }), id: \.key) { type, count in
-                    Circle()
+                    RoundedRectangle(cornerRadius: 3)
                         .fill(colorFor(type))
                         .frame(width: 14, height: 14)
                         .overlay(
                             Text("\(count)")
                                 .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(.white)
-                        )
-                        .overlay(
-                            Circle()
-                                .strokeBorder(Color.white, lineWidth: 1)
-                                .overlay(
-                                    Text("★")
-                                        .font(.system(size: 6))
-                                        .foregroundColor(.white)
-                                        .offset(x: 4, y: -4)
-                                )
                         )
                 }
             }
