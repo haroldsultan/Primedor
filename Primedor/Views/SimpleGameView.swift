@@ -30,6 +30,7 @@ struct SimpleGameView: View {
     @State private var cardToReserve: Card?
     @State private var reserveWarningMessage = ""
     @State private var revealingPlayer: Player?
+    @State private var errorDismissTimer: Timer?
 
     
     // Animation state
@@ -281,6 +282,39 @@ struct SimpleGameView: View {
             if revealingCard != nil {
                 CardRevealOverlay(revealingCard: $revealingCard, player: revealingPlayer, action: cardAction)
             }
+            
+            // Floating error message overlay (doesn't affect layout)
+            VStack(alignment: .leading, spacing: 0) {
+                if !errorMessage.isEmpty {
+                    HStack(spacing: 12) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundColor(.white)
+                            .font(.system(size: 16))
+                        
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+                        
+                        Spacer()
+                        
+                        Button(action: { dismissError() }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.white)
+                                .font(.system(size: 16))
+                        }
+                    }
+                    .padding(12)
+                    .background(Color.red.opacity(0.9))
+                    .cornerRadius(8)
+                    .padding(12)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+                
+                Spacer()
+            }
+            .ignoresSafeArea(edges: .bottom)
+            .allowsHitTesting(true)
         }
         .navigationBarBackButtonHidden(true)
         .sheet(item: $selectedCard) { card in
@@ -578,7 +612,7 @@ struct SimpleGameView: View {
     }
     
     var playersSection: some View {
-        VStack(alignment: .leading, spacing: 4) {            
+        VStack(alignment: .leading, spacing: 4) {
             ForEach(players) { player in
                 CompactPlayerView(
                     player: player,
@@ -1266,5 +1300,13 @@ struct SimpleGameView: View {
         
         errorMessage = ""
         updateTrigger += 1
+    }
+    
+    func dismissError() {
+        errorDismissTimer?.invalidate()
+        errorDismissTimer = nil
+        withAnimation(.easeInOut(duration: 0.3)) {
+            errorMessage = ""
+        }
     }
 }
