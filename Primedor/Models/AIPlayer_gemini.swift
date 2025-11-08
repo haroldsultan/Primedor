@@ -3,6 +3,7 @@ import Foundation
 enum AIAction {
     case collectToken(TokenType)
     case buyCard(Card)
+    case buyReservedCard(Card)  // NEW: Distinguish reserved card purchases
     case reserveCard(Card)
     case endTurn
 }
@@ -42,7 +43,7 @@ struct AIPlayer {
                 let best = affordableReserved.max {
                     scoreCard(player: player, card: $0, visibleCards: visibleCards) < scoreCard(player: player, card: $1, visibleCards: visibleCards)
                 }
-                if let card = best { return .buyCard(card) }
+                if let card = best { return .buyReservedCard(card) }  // FIXED: Return buyReservedCard instead of buyCard
             }
             
             // --- Priority 2: Buy the best affordable visible card ---

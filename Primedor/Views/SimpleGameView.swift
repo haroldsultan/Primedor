@@ -1199,6 +1199,13 @@ struct SimpleGameView: View {
                     self.endTurn()
                 }
                 
+            case .buyReservedCard(let card):
+                // NEW: Handle buying reserved cards properly
+                self.buyReservedCard(card)
+                DispatchQueue.main.asyncAfter(deadline: .now() + self.speedManager.currentSpeed.aiActionDelay) {
+                    self.endTurn()
+                }
+                
             case .reserveCard(let card):
                 self.reserveCard(card)
 
